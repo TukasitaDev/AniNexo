@@ -9,15 +9,7 @@
   gap: 16px;
   max-width: 560px;
   background: transparent;
-
-  /* Forzar al contenedor del diálogo de Nexo a ser un overlay de posición fija en el centro de la pantalla */
-  position: fixed !important;
-  bottom: 28px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  top: auto !important;
-  right: auto !important;
-  z-index: 999999 !important;
+  z-index: 999999;
 }
 
 /* ---- Avatar de Nexo ---- */
@@ -222,13 +214,13 @@
   }
 }
 
-/* Anular contenedor flotante de Joyride para que sea fijo en el viewport sin verse atrapado por transforms */
+/* Anular contenedor flotante de Joyride para que sea fijo en el centro de la pantalla */
 :global(div.react-joyride__tooltip) {
   position: fixed !important;
-  bottom: 28px !important;
+  top: 50% !important;
   left: 50% !important;
-  transform: translate(-50%, 0) !important;
-  top: auto !important;
+  transform: translate(-50%, -50%) !important;
+  bottom: auto !important;
   right: auto !important;
   z-index: 999999 !important;
   background: transparent !important;
