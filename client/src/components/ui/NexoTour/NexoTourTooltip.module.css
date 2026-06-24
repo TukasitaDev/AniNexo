@@ -2,14 +2,21 @@
 /*  Diálogo de Nexo - Estilos del globo de conversación     */
 /* -------------------------------------------------------- */
 
+/* Layout base: avatar IZQUIERDA + globo DERECHA */
 .tooltipContainer {
   display: flex;
   flex-direction: row;
-  align-items: flex-end; /* Avatar se alinea desde abajo */
+  align-items: flex-end;
   gap: 16px;
-  max-width: 560px;
+  max-width: 580px;
   background: transparent;
   z-index: 999999;
+}
+
+/* Layout invertido: globo IZQUIERDA + avatar DERECHA
+   (cuando Nexo está en el lado DERECHO de la pantalla) */
+.tooltipContainerRight {
+  flex-direction: row-reverse;
 }
 
 /* ---- Avatar de Nexo ---- */
@@ -40,7 +47,7 @@
   min-width: 300px;
 }
 
-/* Triángulo que apunta al avatar */
+/* ── Triángulo: apunta al avatar (a la IZQUIERDA del globo) ── */
 .dialogBox::before {
   content: '';
   position: absolute;
@@ -50,7 +57,6 @@
   border-style: solid;
   border-color: transparent rgba(0, 229, 255, 0.45) transparent transparent;
 }
-
 .dialogBox::after {
   content: '';
   position: absolute;
@@ -59,6 +65,20 @@
   border-width: 9px 10px 9px 0;
   border-style: solid;
   border-color: transparent rgba(7, 7, 12, 0.92) transparent transparent;
+}
+
+/* ── Triángulo invertido: apunta al avatar (a la DERECHA del globo) ── */
+.dialogBoxRight::before {
+  left: auto;
+  right: -11px;
+  border-width: 10px 0 10px 11px;
+  border-color: transparent transparent transparent rgba(0, 229, 255, 0.45);
+}
+.dialogBoxRight::after {
+  left: auto;
+  right: -9px;
+  border-width: 9px 0 9px 10px;
+  border-color: transparent transparent transparent rgba(7, 7, 12, 0.92);
 }
 
 /* ---- Nombre del personaje ---- */
@@ -130,7 +150,6 @@
   padding: 0;
   flex-shrink: 0;
 }
-
 .skipButton:hover {
   color: rgba(255, 255, 255, 0.7);
 }
@@ -152,7 +171,6 @@
   font-weight: 600;
   transition: all 0.2s;
 }
-
 .backButton:hover {
   background: rgba(255, 255, 255, 0.12);
 }
@@ -168,7 +186,6 @@
   font-weight: 700;
   transition: all 0.2s;
 }
-
 .nextButton:hover {
   background: rgba(0, 229, 255, 0.22);
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
@@ -224,9 +241,26 @@
   50%       { opacity: 0; }
 }
 
+/* ── Posición base del wrapper de Joyride (sobrescrita por JS dinámico) ── */
+:global(div.react-joyride__tooltip) {
+  position: fixed !important;
+  /* Posición por defecto (centro-abajo) mientras JS no aplica */
+  left: 50% !important;
+  top: auto !important;
+  bottom: 4vh !important;
+  transform: translateX(-50%) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  padding: 0 !important;
+  z-index: 999999 !important;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 640px) {
-  .tooltipContainer {
+  .tooltipContainer,
+  .tooltipContainerRight {
     flex-direction: column;
     align-items: center;
     max-width: 95vw;
@@ -238,21 +272,9 @@
   }
 
   .dialogBox::before,
-  .dialogBox::after {
+  .dialogBox::after,
+  .dialogBoxRight::before,
+  .dialogBoxRight::after {
     display: none;
   }
-}
-
-/* Anular contenedor flotante de Joyride para que sea fijo en el centro de la pantalla */
-:global(div.react-joyride__tooltip) {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  bottom: auto !important;
-  right: auto !important;
-  z-index: 999999 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
 }
