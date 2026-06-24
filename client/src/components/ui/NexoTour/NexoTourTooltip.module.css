@@ -183,6 +183,35 @@
   margin-bottom: 8px;
 }
 
+/* ---- Barra de auto-avance ---- */
+.autoAdvanceBar {
+  margin-bottom: 12px;
+}
+
+.autoAdvanceLabel {
+  font-size: 11px;
+  color: rgba(0, 229, 255, 0.65);
+  text-align: right;
+  margin-bottom: 5px;
+  letter-spacing: 0.3px;
+}
+
+.autoAdvanceTrack {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 229, 255, 0.12);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.autoAdvanceFill {
+  height: 100%;
+  background: linear-gradient(90deg, #00b8d9, #00E5FF);
+  border-radius: 99px;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+  transition: width 0.1s linear;
+}
+
 /* ---- Keyframes ---- */
 @keyframes float {
   0%   { transform: translateY(0px); }

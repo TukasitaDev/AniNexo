@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TooltipRenderProps } from 'react-joyride';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './NexoTourTooltip.module.css';
+
+/** Segundos de espera tras terminar de escribir antes de avanzar automáticamente */
+const AUTO_ADVANCE_DELAY = 6; // segundos
 
 /**
  * Hook typewriter — sin bug de "undefined".
@@ -46,6 +49,55 @@ function useTypewriter(text: string, speed = 22) {
   return { displayed, done, skip };
 }
 
+/**
+ * Hook de cuenta regresiva para auto-avance.
+ * Devuelve el progreso (0→1) y si ya expiró.
+ */
+function useCountdown(active: boolean, seconds: number, onExpire: () => void) {
+  const [progress, setProgress] = useState(0); // 0 = inicio, 1 = expirado
+  const startRef = useRef<number | null>(null);
+  const rafRef   = useRef<number | null>(null);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (!active) {
+      // Resetear cuando no está activo
+      setProgress(0);
+      startRef.current = null;
+      calledRef.current = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+
+    calledRef.current = false;
+    startRef.current = performance.now();
+
+    const tick = (now: number) => {
+      if (!startRef.current) return;
+      const elapsed = (now - startRef.current) / 1000;
+      const p = Math.min(elapsed / seconds, 1);
+      setProgress(p);
+
+      if (p >= 1) {
+        if (!calledRef.current) {
+          calledRef.current = true;
+          onExpire();
+        }
+        return;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  return progress;
+}
+
 export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
   continuous,
   index,
@@ -64,10 +116,28 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
     typeof step.content === 'string'
       ? step.content
       : React.isValidElement(step.content)
-      ? ''            // si por algún motivo es JSX, no lo tipificamos
+      ? ''
       : String(step.content ?? '');
 
   const { displayed, done, skip } = useTypewriter(contentText, 22);
+
+  // Ref al botón de siguiente para poder dispararlo programáticamente
+  const nextBtnRef = useRef<HTMLButtonElement>(null);
+
+  const handleAutoAdvance = useCallback(() => {
+    nextBtnRef.current?.click();
+  }, []);
+
+  // La cuenta regresiva solo corre cuando el texto ya terminó de escribirse
+  const isLastStep = index === size - 1;
+  // No auto-avanzar en el último paso (el usuario debe decidir finalizar)
+  const countdownActive = done && !isLastStep;
+  const progress = useCountdown(countdownActive, AUTO_ADVANCE_DELAY, handleAutoAdvance);
+
+  // Segundos restantes visibles
+  const secondsLeft = countdownActive
+    ? Math.ceil(AUTO_ADVANCE_DELAY * (1 - progress))
+    : AUTO_ADVANCE_DELAY;
 
   return (
     <div {...tooltipProps} className={styles.tooltipContainer}>
@@ -109,10 +179,33 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
           {!done && <span className={styles.typewriterCursor} />}
         </div>
 
-        {/* Hint click-to-skip */}
+        {/* Hint click-to-skip mientras escribe */}
         {!done && (
-          <div className={styles.clickHint}>Haz clic para continuar →</div>
+          <div className={styles.clickHint}>Haz clic para saltar el texto →</div>
         )}
+
+        {/* Barra de cuenta regresiva (solo cuando done y no es el último paso) */}
+        <AnimatePresence>
+          {done && !isLastStep && (
+            <motion.div
+              className={styles.autoAdvanceBar}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className={styles.autoAdvanceLabel}>
+                Continúa solo en {secondsLeft}s
+              </div>
+              <div className={styles.autoAdvanceTrack}>
+                <motion.div
+                  className={styles.autoAdvanceFill}
+                  style={{ width: `${progress * 100}%` }}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Footer */}
         <div className={styles.footer}>
@@ -132,8 +225,12 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
             )}
 
             {continuous ? (
-              <button {...primaryProps} className={styles.nextButton}>
-                {index === size - 1 ? '🎉 Finalizar' : 'Siguiente →'}
+              <button
+                {...primaryProps}
+                ref={nextBtnRef}
+                className={styles.nextButton}
+              >
+                {isLastStep ? '🎉 Finalizar' : 'Siguiente →'}
               </button>
             ) : (
               <button {...closeProps} className={styles.nextButton}>
