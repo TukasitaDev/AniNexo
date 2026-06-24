@@ -241,20 +241,39 @@
   50%       { opacity: 0; }
 }
 
-/* ── Posición base del wrapper de Joyride (sobrescrita por JS dinámico) ── */
-:global(div.react-joyride__tooltip) {
+/* ─────────────────────────────────────────────────────────────────────────
+   OVERRIDE DEL FLOATER DE JOYRIDE
+   react-floater inyecta `position: absolute` + `transform: translate(X,Y)`
+   como INLINE STYLES en .__floater/__floater__open.
+   CSS !important vence sobre inline styles que NO usan !important.
+   El JS en NexoTourTooltip también llama setProperty('important') varias
+   veces para garantizar la posición correcta.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Posición por defecto (centro-abajo) — el JS la ajusta según el placement */
+:global(.__floater),
+:global(.__floater__open) {
   position: fixed !important;
-  /* Posición por defecto (centro-abajo) mientras JS no aplica */
   left: 50% !important;
+  right: auto !important;
   top: auto !important;
   bottom: 4vh !important;
   transform: translateX(-50%) !important;
+  z-index: 999999 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   max-width: none !important;
   padding: 0 !important;
-  z-index: 999999 !important;
+}
+
+/* El wrapper interno puede limpiar sus estilos decorativos */
+:global(div.react-joyride__tooltip) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 /* ---- Responsive ---- */

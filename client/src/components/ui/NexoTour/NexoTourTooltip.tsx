@@ -5,7 +5,6 @@ import { TooltipRenderProps } from 'react-joyride';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './NexoTourTooltip.module.css';
 
-/** Segundos de espera tras terminar de escribir antes de avanzar automáticamente */
 const AUTO_ADVANCE_DELAY = 6;
 
 /**
@@ -13,7 +12,7 @@ const AUTO_ADVANCE_DELAY = 6;
  *
  *  placement 'left'   → el target está a la DERECHA → Nexo va a la IZQUIERDA
  *  placement 'right'  → el target está a la IZQUIERDA → Nexo va a la DERECHA
- *  cualquier otro     → Nexo va al CENTRO-ABAJO (nunca arriba)
+ *  cualquier otro     → Nexo va al CENTRO-ABAJO (NUNCA arriba)
  */
 function getTooltipPosition(placement: string): 'left' | 'right' | 'bottom-center' {
   if (placement === 'left')  return 'left';
@@ -22,44 +21,59 @@ function getTooltipPosition(placement: string): 'left' | 'right' | 'bottom-cente
 }
 
 /**
- * Aplica directamente los estilos al wrapper .react-joyride__tooltip que
- * Joyride inserta por encima de nuestro componente.
+ * Aplica la posición directamente al contenedor externo de react-floater
+ * (.__floater__open) usando setProperty con 'important' para superar los
+ * inline styles que inyecta la librería.
+ *
+ * Se llama VARIAS VECES con delays crecientes para ganar siempre a los
+ * re-posicionamientos tardíos de Joyride/react-floater.
  */
-function applyWrapperPosition(pos: 'left' | 'right' | 'bottom-center') {
-  const el = document.querySelector('.react-joyride__tooltip') as HTMLElement | null;
+function applyFloaterPosition(pos: 'left' | 'right' | 'bottom-center') {
+  // react-floater pone la clase .__floater__open al contenedor visible
+  const el = (
+    document.querySelector('.__floater__open') ??
+    document.querySelector('.__floater') ??
+    document.querySelector('.react-joyride__tooltip')
+  ) as HTMLElement | null;
+
   if (!el) return;
 
-  el.style.position  = 'fixed';
-  el.style.zIndex    = '999999';
-  el.style.background = 'transparent';
-  el.style.border    = 'none';
-  el.style.boxShadow = 'none';
-  el.style.maxWidth  = 'none';
-  el.style.padding   = '0';
-  // Suave transición al moverse entre pasos
-  el.style.transition = 'top 0.45s cubic-bezier(.34,1.56,.64,1), left 0.45s cubic-bezier(.34,1.56,.64,1), right 0.45s cubic-bezier(.34,1.56,.64,1), bottom 0.45s cubic-bezier(.34,1.56,.64,1), transform 0.45s cubic-bezier(.34,1.56,.64,1)';
+  const set = (prop: string, val: string) =>
+    el.style.setProperty(prop, val, 'important');
+
+  set('position', 'fixed');
+  set('z-index',  '999999');
+  set('background', 'transparent');
+  set('border',   'none');
+  set('box-shadow', 'none');
+  set('max-width', 'none');
+  set('padding',  '0');
+  set(
+    'transition',
+    'top .45s cubic-bezier(.34,1.56,.64,1), left .45s cubic-bezier(.34,1.56,.64,1), right .45s cubic-bezier(.34,1.56,.64,1), bottom .45s cubic-bezier(.34,1.56,.64,1), transform .45s cubic-bezier(.34,1.56,.64,1)',
+  );
 
   if (pos === 'left') {
-    // Nexo en el LADO IZQUIERDO de la pantalla
-    el.style.left      = '1.5vw';
-    el.style.right     = 'auto';
-    el.style.top       = '50%';
-    el.style.bottom    = 'auto';
-    el.style.transform = 'translateY(-50%)';
+    // target a la DERECHA → Nexo a la IZQUIERDA
+    set('left',      '1.5vw');
+    set('right',     'auto');
+    set('top',       '50%');
+    set('bottom',    'auto');
+    set('transform', 'translateY(-50%)');
   } else if (pos === 'right') {
-    // Nexo en el LADO DERECHO de la pantalla
-    el.style.left      = 'auto';
-    el.style.right     = '1.5vw';
-    el.style.top       = '50%';
-    el.style.bottom    = 'auto';
-    el.style.transform = 'translateY(-50%)';
+    // target a la IZQUIERDA → Nexo a la DERECHA
+    set('left',      'auto');
+    set('right',     '1.5vw');
+    set('top',       '50%');
+    set('bottom',    'auto');
+    set('transform', 'translateY(-50%)');
   } else {
-    // Nexo CENTRO-ABAJO (nunca arriba)
-    el.style.left      = '50%';
-    el.style.right     = 'auto';
-    el.style.top       = 'auto';
-    el.style.bottom    = '4vh';
-    el.style.transform = 'translateX(-50%)';
+    // centro / top / bottom → Nexo CENTRO-ABAJO
+    set('left',      '50%');
+    set('right',     'auto');
+    set('top',       'auto');
+    set('bottom',    '4vh');
+    set('transform', 'translateX(-50%)');
   }
 }
 
@@ -67,7 +81,7 @@ function applyWrapperPosition(pos: 'left' | 'right' | 'bottom-center') {
 function useTypewriter(text: string, speed = 22) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone]           = useState(false);
-  const idRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const idRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const safeText = typeof text === 'string' ? text : '';
 
   useEffect(() => {
@@ -157,27 +171,31 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
       ? ''
       : String(step.content ?? '');
 
-  // Placement del step actual
-  const rawPlacement = (step as any).placement as string ?? 'center';
+  const rawPlacement = ((step as any).placement as string) ?? 'center';
   const nexoPos      = getTooltipPosition(rawPlacement);
-  const isRight      = nexoPos === 'right'; // layout invertido
+  const isRight      = nexoPos === 'right';
 
-  // Posicionar el wrapper de Joyride cada vez que cambia el step
+  /**
+   * Aplicar posición al floater externo múltiples veces con delays crecientes.
+   * Esto garantiza que nuestros estilos siempre ganen a los re-posicionamientos
+   * tardíos de react-floater (que ocurren en varios ciclos de render).
+   */
   useEffect(() => {
-    // Pequeño delay para que el DOM de Joyride esté listo
-    const t = setTimeout(() => applyWrapperPosition(nexoPos), 30);
-    return () => clearTimeout(t);
+    const timers = [0, 40, 120, 300].map((delay) =>
+      setTimeout(() => applyFloaterPosition(nexoPos), delay),
+    );
+    return () => timers.forEach(clearTimeout);
   }, [nexoPos, step]);
 
   const { displayed, done, skip } = useTypewriter(contentText, 22);
 
-  const nextBtnRef = useRef<HTMLButtonElement>(null);
+  const nextBtnRef        = useRef<HTMLButtonElement>(null);
   const handleAutoAdvance = useCallback(() => { nextBtnRef.current?.click(); }, []);
 
-  const isLastStep       = index === size - 1;
-  const countdownActive  = done && !isLastStep;
-  const progress         = useCountdown(countdownActive, AUTO_ADVANCE_DELAY, handleAutoAdvance);
-  const secondsLeft      = countdownActive
+  const isLastStep      = index === size - 1;
+  const countdownActive = done && !isLastStep;
+  const progress        = useCountdown(countdownActive, AUTO_ADVANCE_DELAY, handleAutoAdvance);
+  const secondsLeft     = countdownActive
     ? Math.ceil(AUTO_ADVANCE_DELAY * (1 - progress))
     : AUTO_ADVANCE_DELAY;
 
@@ -225,7 +243,6 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
           <div className={styles.clickHint}>Haz clic para saltar el texto →</div>
         )}
 
-        {/* Barra de cuenta regresiva */}
         <AnimatePresence>
           {done && !isLastStep && (
             <motion.div
