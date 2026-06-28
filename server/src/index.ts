@@ -26,6 +26,7 @@ import notificationRoutes from './modules/notification/notification.routes';
 import analyticsRoutes from './modules/admin/analytics.routes';
 import groupRoutes from './modules/groups/group.routes';
 import friendRoutes from './modules/friends/friend.routes';
+import mangaRoutes from './modules/manga/manga.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { maintenanceMiddleware } from './middleware/maintenance.middleware';
 import { setupSockets } from './sockets';
@@ -112,6 +113,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/manga', mangaRoutes);
 
 // ── Image proxy (strips CORS restrictions from external CDNs) ─────────────────
 import axios from 'axios';

@@ -1,83 +1,28 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { TooltipRenderProps } from 'react-joyride';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './NexoTourTooltip.module.css';
 
 const AUTO_ADVANCE_DELAY = 6;
 
-/**
- * Calcula la posición en la que debe aparecer Nexo según el placement del step.
- *
- *  placement 'left'   → el target está a la DERECHA → Nexo va a la IZQUIERDA
- *  placement 'right'  → el target está a la IZQUIERDA → Nexo va a la DERECHA
- *  cualquier otro     → Nexo va al CENTRO-ABAJO (NUNCA arriba)
- */
-function getTooltipPosition(placement: string): 'left' | 'right' | 'bottom-center' {
-  if (placement === 'left')  return 'left';
-  if (placement === 'right') return 'right';
-  return 'bottom-center';
+// ─── Posición según placement ────────────────────────────────────────────────
+function getPosition(placement: string): 'left' | 'right' | 'bottom-center' {
+  if (placement === 'left')  return 'left';   // target a la DERECHA → Nexo izquierda
+  if (placement === 'right') return 'right';  // target a la IZQUIERDA → Nexo derecha
+  return 'bottom-center';                      // resto → centro abajo, NUNCA arriba
 }
 
-/**
- * Aplica la posición directamente al contenedor externo de react-floater
- * (.__floater__open) usando setProperty con 'important' para superar los
- * inline styles que inyecta la librería.
- *
- * Se llama VARIAS VECES con delays crecientes para ganar siempre a los
- * re-posicionamientos tardíos de Joyride/react-floater.
- */
-function applyFloaterPosition(pos: 'left' | 'right' | 'bottom-center') {
-  // react-floater pone la clase .__floater__open al contenedor visible
-  const el = (
-    document.querySelector('.__floater__open') ??
-    document.querySelector('.__floater') ??
-    document.querySelector('.react-joyride__tooltip')
-  ) as HTMLElement | null;
-
-  if (!el) return;
-
-  const set = (prop: string, val: string) =>
-    el.style.setProperty(prop, val, 'important');
-
-  set('position', 'fixed');
-  set('z-index',  '999999');
-  set('background', 'transparent');
-  set('border',   'none');
-  set('box-shadow', 'none');
-  set('max-width', 'none');
-  set('padding',  '0');
-  set(
-    'transition',
-    'top .45s cubic-bezier(.34,1.56,.64,1), left .45s cubic-bezier(.34,1.56,.64,1), right .45s cubic-bezier(.34,1.56,.64,1), bottom .45s cubic-bezier(.34,1.56,.64,1), transform .45s cubic-bezier(.34,1.56,.64,1)',
-  );
-
-  if (pos === 'left') {
-    // target a la DERECHA → Nexo a la IZQUIERDA
-    set('left',      '1.5vw');
-    set('right',     'auto');
-    set('top',       '50%');
-    set('bottom',    'auto');
-    set('transform', 'translateY(-50%)');
-  } else if (pos === 'right') {
-    // target a la IZQUIERDA → Nexo a la DERECHA
-    set('left',      'auto');
-    set('right',     '1.5vw');
-    set('top',       '50%');
-    set('bottom',    'auto');
-    set('transform', 'translateY(-50%)');
-  } else {
-    // centro / top / bottom → Nexo CENTRO-ABAJO
-    set('left',      '50%');
-    set('right',     'auto');
-    set('top',       'auto');
-    set('bottom',    '4vh');
-    set('transform', 'translateX(-50%)');
-  }
+function positionStyle(pos: 'left' | 'right' | 'bottom-center'): React.CSSProperties {
+  const base: React.CSSProperties = { position: 'fixed', zIndex: 999999 };
+  if (pos === 'left')  return { ...base, left: '1.5vw',  top: '50%', transform: 'translateY(-50%)' };
+  if (pos === 'right') return { ...base, right: '1.5vw', top: '50%', transform: 'translateY(-50%)' };
+  return { ...base, left: '50%', bottom: '4vh', transform: 'translateX(-50%)' };
 }
 
-// ─── Hook typewriter ────────────────────────────────────────────────────────
+// ─── Hook typewriter ─────────────────────────────────────────────────────────
 function useTypewriter(text: string, speed = 22) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone]           = useState(false);
@@ -88,17 +33,12 @@ function useTypewriter(text: string, speed = 22) {
     if (idRef.current) clearInterval(idRef.current);
     setDisplayed('');
     setDone(false);
-
     let i = 0;
     idRef.current = setInterval(() => {
       i += 1;
       setDisplayed(safeText.slice(0, i));
-      if (i >= safeText.length) {
-        clearInterval(idRef.current!);
-        setDone(true);
-      }
+      if (i >= safeText.length) { clearInterval(idRef.current!); setDone(true); }
     }, speed);
-
     return () => { if (idRef.current) clearInterval(idRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeText]);
@@ -108,11 +48,10 @@ function useTypewriter(text: string, speed = 22) {
     setDisplayed(safeText);
     setDone(true);
   };
-
   return { displayed, done, skip };
 }
 
-// ─── Hook countdown ─────────────────────────────────────────────────────────
+// ─── Hook countdown ──────────────────────────────────────────────────────────
 function useCountdown(active: boolean, seconds: number, onExpire: () => void) {
   const [progress, setProgress] = useState(0);
   const startRef  = useRef<number | null>(null);
@@ -121,28 +60,19 @@ function useCountdown(active: boolean, seconds: number, onExpire: () => void) {
 
   useEffect(() => {
     if (!active) {
-      setProgress(0);
-      startRef.current  = null;
-      calledRef.current = false;
+      setProgress(0); startRef.current = null; calledRef.current = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
-
     calledRef.current = false;
     startRef.current  = performance.now();
-
     const tick = (now: number) => {
       if (!startRef.current) return;
-      const elapsed = (now - startRef.current) / 1000;
-      const p = Math.min(elapsed / seconds, 1);
+      const p = Math.min((now - startRef.current) / 1000 / seconds, 1);
       setProgress(p);
-      if (p >= 1) {
-        if (!calledRef.current) { calledRef.current = true; onExpire(); }
-        return;
-      }
+      if (p >= 1) { if (!calledRef.current) { calledRef.current = true; onExpire(); } return; }
       rafRef.current = requestAnimationFrame(tick);
     };
-
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -153,39 +83,24 @@ function useCountdown(active: boolean, seconds: number, onExpire: () => void) {
 
 // ─── Tooltip component ───────────────────────────────────────────────────────
 export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
-  continuous,
-  index,
-  size,
-  step,
-  backProps,
-  closeProps,
-  primaryProps,
-  skipProps,
-  tooltipProps,
+  continuous, index, size, step,
+  backProps, closeProps, primaryProps, skipProps,
+  tooltipProps,   // ← necesario para aria + ref interno de Joyride
 }) => {
+  // Solo montamos el portal en el cliente
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const emotion: string = (step as any).emotion ?? 'happy';
   const contentText: string =
-    typeof step.content === 'string'
-      ? step.content
-      : React.isValidElement(step.content)
-      ? ''
-      : String(step.content ?? '');
+    typeof step.content === 'string' ? step.content
+    : React.isValidElement(step.content) ? ''
+    : String(step.content ?? '');
 
   const rawPlacement = ((step as any).placement as string) ?? 'center';
-  const nexoPos      = getTooltipPosition(rawPlacement);
-  const isRight      = nexoPos === 'right';
-
-  /**
-   * Aplicar posición al floater externo múltiples veces con delays crecientes.
-   * Esto garantiza que nuestros estilos siempre ganen a los re-posicionamientos
-   * tardíos de react-floater (que ocurren en varios ciclos de render).
-   */
-  useEffect(() => {
-    const timers = [0, 40, 120, 300].map((delay) =>
-      setTimeout(() => applyFloaterPosition(nexoPos), delay),
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [nexoPos, step]);
+  const pos      = getPosition(rawPlacement);
+  const isRight  = pos === 'right';
+  const wrapStyle = positionStyle(pos);
 
   const { displayed, done, skip } = useTypewriter(contentText, 22);
 
@@ -199,12 +114,20 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
     ? Math.ceil(AUTO_ADVANCE_DELAY * (1 - progress))
     : AUTO_ADVANCE_DELAY;
 
-  return (
+  // ── Diálogo que se inyectará como portal ──────────────────────────────────
+  const dialog = (
     <div
-      {...tooltipProps}
-      className={`${styles.tooltipContainer} ${isRight ? styles.tooltipContainerRight : ''}`}
+      style={{
+        ...wrapStyle,
+        display: 'flex',
+        flexDirection: isRight ? 'row-reverse' : 'row',
+        alignItems: 'flex-end',
+        gap: 16,
+        maxWidth: 580,
+        pointerEvents: 'auto',
+      }}
     >
-      {/* ---- Avatar de Nexo ---- */}
+      {/* Avatar de Nexo */}
       <motion.img
         key={emotion}
         src={`/nexo-tour/${emotion}.png`}
@@ -217,7 +140,7 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
         draggable={false}
       />
 
-      {/* ---- Globo de diálogo ---- */}
+      {/* Globo de diálogo */}
       <motion.div
         className={`${styles.dialogBox} ${isRight ? styles.dialogBoxRight : ''}`}
         onClick={!done ? skip : undefined}
@@ -229,9 +152,7 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
         <div className={styles.speakerName}>NEXO · IA</div>
 
         {step.title && (
-          <h3 className={styles.stepTitle}>
-            {step.title as React.ReactNode}
-          </h3>
+          <h3 className={styles.stepTitle}>{step.title as React.ReactNode}</h3>
         )}
 
         <div className={styles.content}>
@@ -243,18 +164,15 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
           <div className={styles.clickHint}>Haz clic para saltar el texto →</div>
         )}
 
+        {/* Barra de cuenta regresiva */}
         <AnimatePresence>
           {done && !isLastStep && (
             <motion.div
               className={styles.autoAdvanceBar}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className={styles.autoAdvanceLabel}>
-                Continúa solo en {secondsLeft}s
-              </div>
+              <div className={styles.autoAdvanceLabel}>Continúa solo en {secondsLeft}s</div>
               <div className={styles.autoAdvanceTrack}>
                 <motion.div
                   className={styles.autoAdvanceFill}
@@ -266,37 +184,51 @@ export const NexoTourTooltip: React.FC<TooltipRenderProps> = ({
         </AnimatePresence>
 
         <div className={styles.footer}>
-          <button {...skipProps} className={styles.skipButton}>
-            Saltar guía
-          </button>
-
-          <span className={styles.stepCounter}>
-            {index + 1} / {size}
-          </span>
-
+          <button {...skipProps} className={styles.skipButton}>Saltar guía</button>
+          <span className={styles.stepCounter}>{index + 1} / {size}</span>
           <div className={styles.controls}>
             {index > 0 && (
-              <button {...backProps} className={styles.backButton}>
-                ← Atrás
-              </button>
+              <button {...backProps} className={styles.backButton}>← Atrás</button>
             )}
-
             {continuous ? (
-              <button
-                {...primaryProps}
-                ref={nextBtnRef}
-                className={styles.nextButton}
-              >
+              <button {...primaryProps} ref={nextBtnRef} className={styles.nextButton}>
                 {isLastStep ? '🎉 Finalizar' : 'Siguiente →'}
               </button>
             ) : (
-              <button {...closeProps} className={styles.nextButton}>
-                Cerrar
-              </button>
+              <button {...closeProps} className={styles.nextButton}>Cerrar</button>
             )}
           </div>
         </div>
       </motion.div>
     </div>
+  );
+
+  return (
+    <>
+      {/*
+       * Div mínimo con tooltipProps: Joyride necesita su ref para tracking
+       * interno (foco, aria). Lo ocultamos visualmente pero está en el DOM.
+       */}
+      <div
+        {...tooltipProps}
+        style={{
+          position: 'fixed',
+          top: -9999,
+          left: -9999,
+          width: 1,
+          height: 1,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          opacity: 0,
+        }}
+      />
+
+      {/*
+       * El diálogo real se renderiza como PORTAL directo a document.body.
+       * De esta forma nunca tiene ancestros con transform y position:fixed
+       * funciona exactamente como esperamos (relativo al viewport).
+       */}
+      {mounted && createPortal(dialog, document.body)}
+    </>
   );
 };

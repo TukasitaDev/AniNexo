@@ -149,12 +149,15 @@ export class DiscoveryService {
    * Obtiene múltiples filas de categorías populares (Home)
    */
   async getHomeRows() {
+    const currentYear = new Date().getFullYear();
     const query = `
-      query {
+      query ($year: Int) {
         trending: Page(page: 1, perPage: 30) { media(type: ANIME, sort: TRENDING_DESC) { ...AnimeFields } }
         popular: Page(page: 1, perPage: 30) { media(type: ANIME, sort: POPULARITY_DESC) { ...AnimeFields } }
         topRated: Page(page: 1, perPage: 30) { media(type: ANIME, sort: SCORE_DESC) { ...AnimeFields } }
         upcoming: Page(page: 1, perPage: 30) { media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) { ...AnimeFields } }
+        airing: Page(page: 1, perPage: 30) { media(type: ANIME, status: RELEASING, sort: UPDATED_AT_DESC) { ...AnimeFields } }
+        seasonal: Page(page: 1, perPage: 30) { media(type: ANIME, seasonYear: $year, sort: POPULARITY_DESC) { ...AnimeFields } }
       }
       fragment AnimeFields on Media {
         id
@@ -168,13 +171,15 @@ export class DiscoveryService {
     `;
 
     try {
-      const response = await axios.post(ANILIST_URL, { query });
+      const response = await axios.post(ANILIST_URL, { query, variables: { year: currentYear } });
       const data = response.data.data;
       Object.values(data).forEach((page: any) => this.persistMany(page.media));
 
       return [
         { title: '🔥 Tendencias Globales', data: data.trending.media },
         { title: '💎 Los Más Populares', data: data.popular.media },
+        { title: '⚡ Estrenos de la Semana', data: data.airing.media },
+        { title: '🍂 Animes de Temporada', data: data.seasonal.media },
         { title: '🏆 Mejor Valorados', data: data.topRated.media },
         { title: '📅 Próximos Estrenos', data: data.upcoming.media },
       ];

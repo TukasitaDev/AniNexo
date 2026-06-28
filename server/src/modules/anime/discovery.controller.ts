@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { DiscoveryService } from './discovery.service';
+import { MangaService } from '../manga/manga.service';
+
+const mangaService = new MangaService();
 
 export class DiscoveryController {
   private discoveryService: DiscoveryService;
@@ -12,17 +15,28 @@ export class DiscoveryController {
     try {
       const userId = (req as any).user?.id;
 
-      const [hero, rows, personalized] = await Promise.all([
+      const [hero, rows, personalized, popularMangas, newMangas, actionMangas, romanceMangas] = await Promise.all([
         this.discoveryService.getHeroSlides(),
         this.discoveryService.getHomeRows(),
-        userId ? this.discoveryService.getPersonalizedData(userId as string) : Promise.resolve([])
+        userId ? this.discoveryService.getPersonalizedData(userId as string) : Promise.resolve([]),
+        mangaService.searchManga('one', 12, 0), // Use generic keyword to load popular mangas
+        mangaService.searchManga('a', 12, 10), // Alternate query for fresh mangas
+        mangaService.searchManga('battle', 12, 0), // Action/Battle mangas
+        mangaService.searchManga('love', 12, 0) // Romance/Love mangas
       ]);
+
+      const mangaRows = [
+        { title: '📖 Mangas Más Populares', isManga: true, data: popularMangas },
+        { title: '✨ Nuevos Mangas', isManga: true, data: newMangas },
+        { title: '⚔️ Mangas de Acción & Aventura', isManga: true, data: actionMangas },
+        { title: '🌸 Mangas de Romance & Drama', isManga: true, data: romanceMangas }
+      ];
 
       res.status(200).json({
         success: true,
         data: { 
           hero, 
-          rows: [...personalized, ...rows] 
+          rows: [...personalized, ...rows, ...mangaRows] 
         }
       });
     } catch (error) {

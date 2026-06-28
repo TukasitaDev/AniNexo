@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
 import { AnimeService } from '../anime/anime.service';
+import { MangaService } from '../manga/manga.service';
 
 const animeService = new AnimeService();
+const mangaService = new MangaService();
 
 export class SearchController {
   globalSearch = async (req: Request, res: Response, next: NextFunction) => {
@@ -11,7 +13,7 @@ export class SearchController {
       const query = q as string;
 
       if (!query || query.length < 2) {
-        return res.status(200).json({ success: true, data: { animes: [], users: [] } });
+        return res.status(200).json({ success: true, data: { animes: [], users: [], mangas: [] } });
       }
 
       console.log(`[SearchController] Buscando localmente (case-insensitive): "${query}"`);
@@ -80,7 +82,15 @@ export class SearchController {
         }
       });
 
-      console.log(`[SearchController] Resultados para "${query}": ${animes.length} animes, ${users.length} usuarios`);
+      // 3. Buscar Mangas en MangaDex
+      let mangas: any[] = [];
+      try {
+        mangas = await mangaService.searchManga(query, 5, 0);
+      } catch (err) {
+        console.error('[SearchController - MangaDex Error]:', err);
+      }
+
+      console.log(`[SearchController] Resultados para "${query}": ${animes.length} animes, ${users.length} usuarios, ${mangas.length} mangas`);
 
       // Normalizar respuesta para el frontend
       const normalizedAnimes = animes.map(a => {
@@ -99,7 +109,8 @@ export class SearchController {
         success: true,
         data: {
           animes: normalizedAnimes,
-          users
+          users,
+          mangas
         }
       });
     } catch (error) {

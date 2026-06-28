@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { HeroCarousel } from '../../components/discovery/HeroCarousel';
 import { AnimeRow } from '../../components/discovery/AnimeRow';
+import { MangaCard } from '../../components/discovery/MangaCard';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -123,6 +124,29 @@ export default function DashboardPage() {
 
       <main className="discovery-rows-wide">
         {data?.rows?.map((row: any, i: number) => {
+          if (row.isManga) {
+            return (
+              <section key={i} className="manga-row-section">
+                <div className="row-header">
+                  <h2 className="row-title">{row.title}</h2>
+                </div>
+                <div className="row-scroll-container">
+                  {row.data?.map((manga: any) => (
+                    <MangaCard 
+                      key={manga.id}
+                      id={manga.id}
+                      title={manga.title}
+                      coverUrl={manga.coverUrl}
+                      author={manga.author}
+                      status={manga.status}
+                      tags={manga.tags}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          }
+
           const slugMap: any = {
             '🔥 Tendencias Globales': 'trending',
             '💎 Los Más Populares': 'popular',
@@ -156,6 +180,46 @@ export default function DashboardPage() {
           margin-top: -50px;
           position: relative;
           z-index: 10;
+        }
+
+        .manga-row-section {
+          margin-bottom: 3rem;
+          padding: 0 1rem;
+        }
+
+        .row-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-bottom: 1.5rem;
+          padding: 0 1rem;
+        }
+
+        .row-title {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: #fff;
+          margin: 0;
+          letter-spacing: -0.5px;
+          border-left: 4px solid #00E5FF;
+          padding-left: 15px;
+        }
+
+        .row-scroll-container {
+          display: flex;
+          gap: 1.5rem;
+          overflow-x: auto;
+          padding: 10px 1rem 30px;
+          scroll-behavior: smooth;
+          scrollbar-width: none;
+        }
+
+        .row-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .row-title { font-size: 1.2rem; }
         }
       `}</style>
     </div>

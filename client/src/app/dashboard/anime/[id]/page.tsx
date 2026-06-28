@@ -9,7 +9,7 @@ import { NexoAlert } from '../../../../components/ui/NexoAlert';
 import { AnimeSocialFeed } from '../../../../components/anime/AnimeSocialFeed';
 import { Users, BookOpen } from 'lucide-react';
 
-type TabType = 'overview' | 'characters' | 'staff' | 'stats' | 'social';
+type TabType = 'overview' | 'characters' | 'staff' | 'stats' | 'social' | 'manga';
 
 export default function AnimeDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
@@ -23,6 +23,8 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [addingToCollection, setAddingToCollection] = useState(false);
+  const [mangaId, setMangaId] = useState<string | null>(null);
+  const [checkingManga, setCheckingManga] = useState(true);
 
   useEffect(() => {
     const loadData = async (force: boolean = false) => {
@@ -38,6 +40,40 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
         }
         setAnime(data);
         setLoading(false);
+
+        // Buscar manga correspondiente en MangaDex a través de nuestro proxy
+        const titleToSearch = data.title?.english || data.title?.romaji;
+        if (titleToSearch) {
+          setCheckingManga(true);
+          try {
+            const searchRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/manga/search?q=${encodeURIComponent(titleToSearch)}&limit=1`);
+            const searchJson = await searchRes.json();
+            if (searchJson.success && searchJson.data?.length > 0) {
+              // Hacemos una validación de título simple para evitar falsos positivos groseros
+              const foundManga = searchJson.data[0];
+              setMangaId(foundManga.id);
+            }
+          } catch (e) {
+            console.error('Error checking manga availability:', e);
+          } finally {
+            setCheckingManga(false);
+          }
+        } else {
+          setCheckingManga(false);
+        }
+
+        // Registrar vista en el historial
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/anime/discovery/track-view`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ animeId: Number(realId) })
+          }).catch(err => console.error('Error tracking view:', err));
+        }
       } catch (err) {
         setError('Error al conectar con el Nexo.');
         setLoading(false);
@@ -77,12 +113,13 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
   const title = anime.title.english || anime.title.romaji;
   const studio = anime.studios.nodes[0]?.name || 'Estudio Desconocido';
 
-  const tabs: { id: TabType; label: string }[] = [
+  const tabs: { id: TabType; label: string; icon?: string }[] = [
     { id: 'overview', label: 'Vista General' },
     { id: 'characters', label: 'Personajes' },
     { id: 'staff', label: 'Staff' },
     { id: 'stats', label: 'Estadísticas' },
-    { id: 'social', label: 'Social' }
+    { id: 'social', label: 'Social' },
+    { id: 'manga', label: '📖 Leer Manga' },
   ];
 
   return (
@@ -117,35 +154,37 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
                <span>Crear Grupo</span>
              </button>
              <button 
-               className="btn-add-collection"
-               onClick={async () => {
-                 setAddingToCollection(true);
-                 try {
-                   const userStr = localStorage.getItem('user');
-                   const token = localStorage.getItem('token');
-                   if (!userStr || !token) return;
-                   const user = JSON.parse(userStr);
-                   
-                   await fetch('/api/groups/collection/add', {
-                     method: 'POST',
-                     headers: {
-                       'Content-Type': 'application/json',
-                       'Authorization': `Bearer ${token}`
-                     },
-                     body: JSON.stringify({ userId: user.id, animeId: anime.id })
-                   });
-                 } catch (e) {
-                   alert('Error al agregar a la colección');
-                 } finally {
-                   setAddingToCollection(false);
-                 }
-               }}
-               disabled={addingToCollection}
-               title="Agregar a mi colección"
-             >
-               <BookOpen size={20} />
-               <span>{addingToCollection ? 'Agregando...' : 'Agregar a Colección'}</span>
-             </button>
+                className="btn-add-collection"
+                onClick={async () => {
+                  setAddingToCollection(true);
+                  try {
+                    const userStr = localStorage.getItem('user');
+                    const token = localStorage.getItem('token');
+                    if (!userStr || !token) return;
+                    const user = JSON.parse(userStr);
+                    
+                    await fetch('/api/groups/collection/add', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ userId: user.id, animeId: anime.id })
+                    });
+                  } catch (e) {
+                    alert('Error al agregar a la colección');
+                  } finally {
+                    setAddingToCollection(false);
+                  }
+                }}
+                disabled={addingToCollection}
+                title="Agregar a mi colección"
+              >
+                <BookOpen size={20} />
+                <span>{addingToCollection ? 'Agregando...' : 'Agregar a Colección'}</span>
+              </button>
+
+
            </div>
          </div>
        </div>
@@ -156,11 +195,14 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
           {tabs.map(tab => (
             <button 
               key={tab.id} 
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.id === 'manga' ? 'manga-tab-btn' : ''}`}
               onClick={() => setActiveTab(tab.id)}
               data-tour={`tab-btn-${tab.id}`}
             >
               {tab.label}
+              {tab.id === 'manga' && !checkingManga && mangaId && (
+                <span className="manga-dot-available" title="Manga disponible" />
+              )}
               {activeTab === tab.id && <div className="tab-underline" />}
             </button>
           ))}
@@ -351,6 +393,38 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
              </div>
            )}
 
+           {activeTab === 'manga' && (
+             <div key="manga" className="tab-pane animate-fadeInUp animate-delay-400">
+               {checkingManga ? (
+                 <div className="manga-tab-loading">
+                   <div className="manga-spinner" />
+                   <p>Buscando manga en MangaDex...</p>
+                 </div>
+               ) : mangaId ? (
+                 <div className="manga-tab-available">
+                   <div className="manga-tab-header">
+                     <h3>📖 Manga disponible en MangaDex</h3>
+                     <p>Este anime tiene un manga adaptación disponible para leer.</p>
+                   </div>
+                   <Link href={`/dashboard/manga/${mangaId}`} className="manga-tab-cta">
+                     <span className="manga-tab-cta-icon">📚</span>
+                     <span className="manga-tab-cta-text">
+                       <strong className="manga-tab-cta-title">Ver capítulos del manga</strong>
+                       <small className="manga-tab-cta-sub">Lista completa de capítulos en MangaDex</small>
+                     </span>
+                     <span className="manga-tab-cta-arrow">→</span>
+                   </Link>
+                 </div>
+               ) : (
+                 <div className="manga-tab-unavailable">
+                   <span className="manga-unavail-icon">📭</span>
+                   <h3>Manga no disponible</h3>
+                   <p>No encontramos un manga correspondiente a este anime en MangaDex.</p>
+                 </div>
+               )}
+             </div>
+           )}
+
            {activeTab === 'stats' && (
              <div key="stats" className="tab-pane animate-fadeInUp animate-delay-500" data-tour="anime-stats">
                <div className="stats-container">
@@ -443,10 +517,12 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          /* TABS */
          .tab-navigation { background: #0a0a0a; border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 100; padding: 0 5%; }
          .tabs-container { display: flex; gap: 30px; }
-         .tab-btn { position: relative; padding: 20px 0; background: none; border: none; color: #666; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.9rem; }
+         .tab-btn { position: relative; padding: 20px 0; background: none; border: none; color: #666; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
          .tab-btn:hover { color: #fff; }
          .tab-btn.active { color: #00E5FF; }
          .tab-underline { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: #00E5FF; border-radius: 3px 3px 0 0; }
+         .manga-tab-btn { white-space: nowrap; }
+         .manga-dot-available { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); flex-shrink: 0; }
  
          /* GRID LAYOUT */
          .page-grid-layout { display: grid; grid-template-columns: 280px 1fr; gap: 50px; padding: 40px 5%; }
@@ -575,6 +651,109 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
             background: rgba(69, 189, 98, 0.2);
             transform: translateY(-2px);
             box-shadow: 0 0 20px rgba(69, 189, 98, 0.2);
+          }
+
+          /* Manga Tab Panel */
+          .manga-tab-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            gap: 16px;
+            color: #aaa;
+          }
+          .manga-spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(0, 229, 255, 0.15);
+            border-top: 3px solid #00E5FF;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+          }
+          .manga-tab-available {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding: 32px 0;
+          }
+          .manga-tab-header h3 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 8px;
+          }
+          .manga-tab-header p {
+            color: #aaa;
+            margin: 0;
+            font-size: 0.95rem;
+          }
+          .manga-tab-cta {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 24px 28px;
+            background: rgba(0, 229, 255, 0.06);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            border-radius: 16px;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            max-width: 500px;
+          }
+          .manga-tab-cta:hover {
+            background: rgba(0, 229, 255, 0.12);
+            border-color: rgba(0, 229, 255, 0.5);
+            transform: translateX(4px);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
+          }
+          .manga-tab-cta-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+          }
+          .manga-tab-cta-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+          .manga-tab-cta-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #00E5FF;
+            display: block;
+          }
+          .manga-tab-cta-sub {
+            font-size: 0.85rem;
+            color: #888;
+            display: block;
+          }
+          .manga-tab-cta-arrow {
+            font-size: 1.5rem;
+            color: #00E5FF;
+            flex-shrink: 0;
+          }
+          .manga-tab-unavailable {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            gap: 16px;
+            text-align: center;
+          }
+          .manga-unavail-icon { font-size: 3rem; }
+          .manga-tab-unavailable h3 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #ff4a4a;
+            margin: 0;
+          }
+          .manga-tab-unavailable p {
+            color: #666;
+            margin: 0;
+            font-size: 0.9rem;
+            max-width: 380px;
           }
  
           /* Modal */
