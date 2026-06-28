@@ -204,8 +204,7 @@ export const NotificationDropdown: React.FC = () => {
       </button>
 
       {isOpen && (
-        <ViewTransition>
-          <div className={styles.dropdown} role="dialog" aria-label="Ventana de notificaciones">
+        <div className={styles.dropdown} role="dialog" aria-label="Ventana de notificaciones">
             <div className={styles.header}>
               <h3 className={styles.title}>Notificaciones</h3>
               {unreadCount > 0 && (
@@ -260,9 +259,8 @@ export const NotificationDropdown: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
-        </ViewTransition>
-      )}
+           </div>
+       )}
     </div>
   );
 };
