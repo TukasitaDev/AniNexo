@@ -3,7 +3,7 @@
 import { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { Socket } from 'socket.io-client';
-import { useNotificationStore } from '../../store/useNotificationStore';
+import { useNotificationStore, Notification } from '../../store/useNotificationStore';
 import { useChatStore } from '../../store/useChatStore';
 import { NotificationToastContainer } from '../ui/NotificationToast/NotificationToast';
 
@@ -18,23 +18,19 @@ export const useGlobalSocket = () => useContext(SocketContext);
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { socket, isConnected } = useSocket();
-  const addToast = useNotificationStore((s) => s.addToast);
+  const addNotification = useNotificationStore((s) => s.addNotification);
   const { setOnlineStatus, setTyping } = useChatStore();
 
   useEffect(() => {
     if (socket && isConnected) {
-      // Notificaciones
-      socket.on('notification', (data) => {
-        console.log('🔔 Nueva Notificación Global:', data);
-        addToast(data);
+      socket.on('notification', (data: Notification) => {
+        addNotification(data);
       });
 
-      // Presencia
       socket.on('user_status', ({ userId, status }) => {
         setOnlineStatus(userId, status === 'online');
       });
 
-      // Escritura
       socket.on('user_typing', ({ userId, conversationId }) => {
         setTyping(conversationId, userId, true);
       });
@@ -47,9 +43,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       if (socket) {
         socket.off('notification');
+        socket.off('user_status');
+        socket.off('user_typing');
+        socket.off('user_stop_typing');
       }
     };
-  }, [socket, isConnected]);
+  }, [socket, isConnected, addNotification, setOnlineStatus, setTyping]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

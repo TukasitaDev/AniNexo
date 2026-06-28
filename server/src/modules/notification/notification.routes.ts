@@ -9,6 +9,7 @@ router.use(authenticateToken);
 
 router.get('/', controller.getMyNotifications);
 router.patch('/:id/read', controller.markAsRead);
+router.patch('/read-all', controller.markAllAsRead);
 router.get('/preferences', controller.getPreferences);
 router.put('/preferences', controller.updatePreference);
 router.post('/subscribe', controller.subscribePush);

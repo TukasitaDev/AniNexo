@@ -29,10 +29,15 @@ export class FriendService {
         where: { userId_friendId: { userId: friendId, friendId: userId } },
         data: { status: 'ACCEPTED' }
       });
+
+      const actor = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, avatarUrl: true } });
       await notificationService.createNotification(friendId, 'SYSTEM', {
         title: 'Amistad aceptada',
-        message: 'Ahora son amigos',
-        referenceId: friendId
+        message: actor?.username ? `@${actor.username} aceptó tu solicitud.` : 'Un usuario aceptó tu solicitud.',
+        referenceId: userId,
+        actorId: userId,
+        actorUsername: actor?.username ?? null,
+        actorAvatar: actor?.avatarUrl ?? null
       }).catch(() => {});
       return { status: 'ACCEPTED' };
     }
@@ -41,10 +46,14 @@ export class FriendService {
       data: { userId, friendId, status: 'PENDING' }
     });
 
+    const actor = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, avatarUrl: true } });
     await notificationService.createNotification(friendId, 'SYSTEM', {
       title: 'Nueva solicitud de amistad',
-      message: 'Te ha enviado una solicitud de amistad',
-      referenceId: userId
+      message: actor?.username ? `@${actor.username} te ha enviado una solicitud de amistad.` : 'Te ha enviado una solicitud de amistad.',
+      referenceId: userId,
+      actorId: userId,
+      actorUsername: actor?.username ?? null,
+      actorAvatar: actor?.avatarUrl ?? null
     }).catch(() => {});
 
     return { status: 'PENDING' };

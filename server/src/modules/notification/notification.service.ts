@@ -9,7 +9,7 @@ export class NotificationService {
   /**
    * Crea una notificación y la distribuye por los canales permitidos
    */
-  async createNotification(userId: string, type: NotificationType, data: { title: string, message: string, referenceId?: string }) {
+  async createNotification(userId: string, type: NotificationType, data: { title: string, message?: string, referenceId?: string, actorId?: string | null, actorUsername?: string | null, actorAvatar?: string | null, targetPostId?: string | null, targetConversationId?: string | null }) {
     try {
       // 1. Obtener preferencias del usuario
       const prefs = await prisma.notificationPreference.findUnique({
@@ -30,6 +30,13 @@ export class NotificationService {
             userId,
             type,
             referenceId: data.referenceId ?? null,
+            targetPostId: data.targetPostId ?? null,
+            targetConversationId: data.targetConversationId ?? null,
+            actorId: data.actorId ?? null,
+            actorUsername: data.actorUsername ?? null,
+            actorAvatar: data.actorAvatar ?? null,
+            title: data.title,
+            message: data.message ?? null,
             isRead: false
           }
         });
@@ -64,7 +71,7 @@ export class NotificationService {
               auth: sub.auth
             }
           };
-          pushService.sendPush(pushConfig, data.title, data.message)
+          pushService.sendPush(pushConfig, data.title, data.message ?? '')
             .catch(err => {
               if (err.statusCode === 410 || err.statusCode === 404) {
                 // Eliminar suscripción expirada
@@ -92,6 +99,13 @@ export class NotificationService {
   async markAsRead(notificationId: string) {
     return prisma.notification.update({
       where: { id: notificationId },
+      data: { isRead: true }
+    });
+  }
+
+  async markAllAsRead(userId: string) {
+    return prisma.notification.updateMany({
+      where: { userId, isRead: false },
       data: { isRead: true }
     });
   }

@@ -24,6 +24,16 @@ export class NotificationController {
     }
   };
 
+  markAllAsRead = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user.id;
+      const result = await notificationService.markAllAsRead(userId);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getPreferences = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user.id;

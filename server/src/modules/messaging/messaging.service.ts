@@ -54,13 +54,17 @@ export class MessagingService {
       include: { user: { select: { username: true } } }
     });
 
-    const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { username: true } });
+    const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { username: true, avatarUrl: true } });
 
     for (const p of participants) {
       await notificationService.createNotification(p.userId, 'MESSAGE', {
         title: `Nuevo mensaje de @${sender?.username || 'Alguien'}`,
         message: content.length > 50 ? content.substring(0, 47) + '...' : content,
-        referenceId: conversationId
+        referenceId: conversationId,
+        targetConversationId: conversationId,
+        actorId: senderId,
+        actorUsername: sender?.username ?? null,
+        actorAvatar: sender?.avatarUrl ?? null
       }).catch(() => {});
     }
 

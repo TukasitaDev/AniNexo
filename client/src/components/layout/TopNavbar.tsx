@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ViewTransition } from 'react';
 import { Users, Menu, X as CloseIcon } from 'lucide-react';
 import { FriendsModal } from '../profile/FriendsModal';
+import { NotificationDropdown } from './NotificationDropdown';
 import styles from './TopNavbar.module.css';
 
 export const TopNavbar: React.FC = () => {
@@ -199,7 +200,7 @@ export const TopNavbar: React.FC = () => {
             <button className={styles.navIconBtn} onClick={() => setShowFriendsModal(true)} title="Ver amigos" aria-label="Ver amigos">
               <Users size={18} />
             </button>
-            <button className={styles.navIconBtn} aria-label="Notificaciones">🔔</button>
+            <NotificationDropdown />
 
             {showFriendsModal && user && (
                <FriendsModal

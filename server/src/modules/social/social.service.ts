@@ -64,10 +64,14 @@ export class SocialService {
       ]);
 
       // Async: Notificar al usuario seguido
+      const followerUser = await prisma.user.findUnique({ where: { id: followerId }, select: { username: true, avatarUrl: true } });
       notificationService.createNotification(followingId, 'FOLLOW', {
         title: '¡Tienes un nuevo seguidor!',
-        message: 'Un usuario ha comenzado a seguirte.',
-        referenceId: followerId
+        message: followerUser?.username ? `@${followerUser.username} ha comenzado a seguirte.` : 'Un usuario ha comenzado a seguirte.',
+        referenceId: followerId,
+        actorId: followerId,
+        actorUsername: followerUser?.username ?? null,
+        actorAvatar: followerUser?.avatarUrl ?? null
       }).catch(err => logger.error('[Social]: Error enviando notificación', err));
 
       // Trigger: Medalla Socialite
@@ -116,10 +120,15 @@ export class SocialService {
           
           const post = await prisma.post.findUnique({ where: { id: postId }, select: { userId: true } });
           if (post && post.userId !== userId) {
+            const actor = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, avatarUrl: true } });
             notificationService.createNotification(post.userId, 'LIKE', {
               title: '¡Reaccionaron a tu publicación!',
-              message: `Un usuario ha reaccionado con ${reactionType.toLowerCase()} a tu publicación.`,
-              referenceId: postId
+              message: actor?.username ? `@${actor.username} reaccionó con ${reactionType.toLowerCase()}.` : `Un usuario reaccionó con ${reactionType.toLowerCase()}.`,
+              referenceId: postId,
+              targetPostId: postId,
+              actorId: userId,
+              actorUsername: actor?.username ?? null,
+              actorAvatar: actor?.avatarUrl ?? null
             }).catch(err => logger.error('[Social]: Error enviando notificación like', err));
           }
           
@@ -138,10 +147,15 @@ export class SocialService {
         
         const post = await prisma.post.findUnique({ where: { id: postId }, select: { userId: true } });
         if (post && post.userId !== userId) {
+          const actor = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, avatarUrl: true } });
           notificationService.createNotification(post.userId, 'LIKE', {
             title: '¡A alguien le gusta tu post!',
-            message: 'Un usuario ha dado like a tu publicación.',
-            referenceId: postId
+            message: actor?.username ? `@${actor.username} ha dado like a tu publicación.` : 'Un usuario ha dado like a tu publicación.',
+            referenceId: postId,
+            targetPostId: postId,
+            actorId: userId,
+            actorUsername: actor?.username ?? null,
+            actorAvatar: actor?.avatarUrl ?? null
           }).catch(err => logger.error('[Social]: Error enviando notificación like', err));
         }
 

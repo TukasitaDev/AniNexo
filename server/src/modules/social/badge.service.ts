@@ -44,7 +44,10 @@ export class BadgeService {
       await notificationService.createNotification(userId, 'SYSTEM', {
         title: '¡Nueva Medalla Ganada!',
         message: `Has ganado la medalla: ${badgeName} ${badge.iconUrl}`,
-        referenceId: badge.id
+        referenceId: badge.id,
+        actorId: userId,
+        actorUsername: null,
+        actorAvatar: null
       });
 
       // Trigger Nexo Automation (Proactive message)
