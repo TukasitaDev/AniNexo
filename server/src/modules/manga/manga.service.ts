@@ -174,7 +174,7 @@ export class MangaService {
       coverUrl,
       author: authorRel ? authorRel.attributes?.name : 'Desconocido',
       artist: artistRel ? artistRel.attributes?.name : 'Desconocido',
-      tags: (attributes.tags || []).map((t: any) => t.attributes?.name?.en).filter(Boolean),
+      tags: (attributes.tags || []).map((t: any) => t.attributes?.name?.es || t.attributes?.name?.en).filter(Boolean),
     };
   }
 }

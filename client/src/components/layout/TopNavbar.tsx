@@ -7,6 +7,7 @@ import { ViewTransition } from 'react';
 import { Users, Menu, X as CloseIcon } from 'lucide-react';
 import { FriendsModal } from '../profile/FriendsModal';
 import styles from './TopNavbar.module.css';
+import { translateFormat } from '../../lib/translations';
 
 export const TopNavbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -257,7 +258,7 @@ export const TopNavbar: React.FC = () => {
                          <img src={anime.coverImage} alt={anime.title} className={styles.resImg} />
                          <div className={styles.resInfo}>
                            <p className={styles.resTitle}>{anime.title}</p>
-                           <p className={styles.resMeta}>{anime.format} • ⭐ {anime.meanScore}%</p>
+                           <p className={styles.resMeta}>{translateFormat(anime.format)} • ⭐ {anime.meanScore}%</p>
                          </div>
                            </Link>
                          );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { translateStatus, translateGenre, stripHtml } from '../../lib/translations';
 
 interface Slide {
   id: number;
@@ -33,7 +34,7 @@ export const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
   const current = slides[currentIndex];
 
   const cleanDescription = (html: string) => {
-    return html?.replace(/<[^>]*>?/gm, '').slice(0, 200) + '...';
+    return stripHtml(html)?.slice(0, 200) + '...';
   };
 
   return (
@@ -62,11 +63,11 @@ export const HeroCarousel: React.FC<{ slides: Slide[] }> = ({ slides }) => {
                 <span className="dot">•</span>
               </>
             )}
-            <span className="status">{current.status}</span>
+            <span className="status">{translateStatus(current.status)}</span>
           </div>
 
           <div className="genre-row">
-            {current.genres.slice(0, 3).map(g => <span key={g}>{g}</span>)}
+            {current.genres.slice(0, 3).map(g => <span key={g}>{translateGenre(g)}</span>)}
           </div>
 
           <p className="hero-description">{cleanDescription(current.description)}</p>

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { NexoAlert } from '../../../../components/ui/NexoAlert';
 import { AnimeSocialFeed } from '../../../../components/anime/AnimeSocialFeed';
 import { Users, BookOpen } from 'lucide-react';
+import { translateStatus, translateSeason, translateFormat, translateGenre, stripHtml } from '../../../../lib/translations';
 
 type TabType = 'overview' | 'characters' | 'staff' | 'stats' | 'social' | 'manga';
 
@@ -137,8 +138,8 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
 <div className="header-text-main">
              <h1 className="anime-title-h1" data-tour="anime-title">{title}</h1>
              <div className="quick-tags">
-               <span className="q-tag">{anime.season} {anime.seasonYear}</span>
-               <span className="q-tag">{anime.type}</span>
+               <span className="q-tag">{translateSeason(anime.season)} {anime.seasonYear}</span>
+               <span className="q-tag">{translateFormat(anime.type)}</span>
                <span className="q-tag score">⭐ {anime.averageScore}%</span>
              </div>
            </div>
@@ -213,16 +214,16 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
         {/* SIDEBAR METADATA */}
         <aside className="anime-sidebar" data-tour="anime-sidebar">
           <div className="meta-glass-card">
-            <div className="meta-group"><span className="m-label">Formato</span><span className="m-value">{anime.type}</span></div>
+            <div className="meta-group"><span className="m-label">Formato</span><span className="m-value">{translateFormat(anime.type)}</span></div>
             <div className="meta-group"><span className="m-label">Episodios</span><span className="m-value">{anime.episodes || '??'}</span></div>
             <div className="meta-group"><span className="m-label">Duración</span><span className="m-value">{anime.duration} min</span></div>
-            <div className="meta-group"><span className="m-label">Estado</span><span className="m-value">{anime.status}</span></div>
+            <div className="meta-group"><span className="m-label">Estado</span><span className="m-value">{translateStatus(anime.status)}</span></div>
             <div className="meta-group"><span className="m-label">Promedio</span><span className="m-value score">{anime.averageScore}%</span></div>
             <div className="meta-group"><span className="m-label">Popularidad</span><span className="m-value">🔥 {anime.popularity.toLocaleString()}</span></div>
             <div className="meta-group"><span className="m-label">Estudio</span><span className="m-value">{studio}</span></div>
             <div className="meta-group"><span className="m-label">Géneros</span>
               <div className="genre-pill-container">
-                {anime.genres.map((g: string) => <span key={g} className="genre-pill">{g}</span>)}
+                {anime.genres.map((g: string) => <span key={g} className="genre-pill">{translateGenre(g)}</span>)}
               </div>
             </div>
 
@@ -288,7 +289,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
              <div key="overview" className="tab-pane animate-fadeInUp animate-delay-100" data-tour="anime-overview">
                <section className="info-block">
                  <h3>Sinopsis</h3>
-                 <div className="description-text" dangerouslySetInnerHTML={{ __html: anime.description }} />
+                 <div className="description-text">{stripHtml(anime.description)}</div>
                </section>
 
                {anime.relations?.length > 0 && (
@@ -299,7 +300,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
                        <Link key={rel.id} href={`/dashboard/anime/${rel.id}`} className="rel-card-modern">
                          <div className="rel-card-img"><Image src={rel.coverImage.large} alt={rel.title.romaji} fill /></div>
                          <div className="rel-card-data">
-                           <span className="rel-label">{rel.type}</span>
+                           <span className="rel-label">{translateFormat(rel.type)}</span>
                            <p className="rel-title-p">{rel.title.english || rel.title.romaji}</p>
                          </div>
                        </Link>

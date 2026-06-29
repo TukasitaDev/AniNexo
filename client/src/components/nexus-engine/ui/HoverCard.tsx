@@ -1,5 +1,6 @@
 import React from 'react';
 import { AnimeNode } from '../core/VisibilityManager';
+import { translateStatus, translateGenre } from '../../../lib/translations';
 
 interface HoverCardProps {
   anime: AnimeNode;
@@ -24,11 +25,11 @@ export const HoverCard: React.FC<HoverCardProps> = ({ anime, x, y }) => {
               key={genre}
               className="text-[9px] font-mono tracking-wider uppercase px-2 py-0.5 rounded-full bg-[#00E5FF]/10 border border-[#00E5FF]/20 text-[#00E5FF]"
             >
-              {genre}
+              {translateGenre(genre)}
             </span>
           ))}
           <span className="text-[9px] font-mono tracking-wider uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400 ml-auto">
-            {anime.status}
+            {translateStatus(anime.status)}
           </span>
         </div>
 

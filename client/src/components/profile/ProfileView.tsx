@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Card } from '../ui/Card/Card';
+import { translateListStatus } from '../../lib/translations';
 import { OnboardingWizard } from '../auth/OnboardingWizard';
 import { EditProfileModal } from './EditProfileModal';
 import { CreatePost } from '../feed/CreatePost';
@@ -659,7 +660,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
                      <img src={entry.anime?.coverImage || '/default-anime.png'} alt={entry.anime?.title || 'Anime'} />
                    </div>
                    <div className="poster-info">
-                     <p className="entry-status">{entry.status.replace(/_/g, ' ')}</p>
+                     <p className="entry-status">{translateListStatus(entry.status)}</p>
                      <span className="entry-status" style={{ fontSize: '0.65rem', opacity: 0.6 }}>
                        {entry.anime?.titleRomaji || entry.anime?.titleEnglish || 'Título desconocido'}
                      </span>
@@ -676,7 +677,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
                    <img src={entry.anime.coverImage} alt={entry.anime.title} />
                  </div>
                  <div className="poster-info">
-                   <p className="entry-status">{entry.status}</p>
+                   <p className="entry-status">{translateListStatus(entry.status)}</p>
                    <div className="progress-bar"><div className="fill" style={{ width: '60%', backgroundColor: themeColor }}></div></div>
                  </div>
                </div>
