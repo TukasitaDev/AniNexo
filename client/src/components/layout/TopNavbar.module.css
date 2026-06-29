@@ -436,8 +436,8 @@
 }
 
 .bellIcon {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.3));
