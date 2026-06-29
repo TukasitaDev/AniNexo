@@ -17,9 +17,95 @@ export const TopNavbar: React.FC = () => {
   const [searchResults, setSearchResults] = useState<{ animes: any[], users: any[] }>({ animes: [], users: [] });
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const searchRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/notifications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.data);
+        setUnreadCount(data.data.filter((n: any) => !n.isRead).length);
+      }
+    } catch (err) {
+      console.error("Error fetching notifications in navbar", err);
+    }
+  }, []);
+
+  const handleMarkAsRead = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/notifications/${id}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      console.error("Error marking notification as read", err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/notifications/read-all`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Error marking all notifications as read", err);
+    }
+  };
+
+  const handleAcceptFriend = async (friendId: string, notificationId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token || !user) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/friends/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: user.id, friendId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Marcar la notificación como leída
+        await handleMarkAsRead(notificationId);
+        alert('¡Solicitud de amistad aceptada!');
+        fetchNotifications();
+      } else {
+        alert(data.message || 'Error al aceptar solicitud');
+      }
+    } catch (err) {
+      console.error("Error accepting friend request", err);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -40,6 +126,14 @@ export const TopNavbar: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [user, fetchNotifications]);
+
+  useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (searchRef.current && !searchRef.current.contains(target)) {
@@ -47,6 +141,9 @@ export const TopNavbar: React.FC = () => {
       }
       if (menuRef.current && !menuRef.current.contains(target)) {
         setShowDropdown(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener('click', handleDocumentClick);
@@ -58,6 +155,7 @@ export const TopNavbar: React.FC = () => {
       if (e.key === 'Escape') {
         setShowSearchResults(false);
         setShowDropdown(false);
+        setShowNotifications(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -199,7 +297,89 @@ export const TopNavbar: React.FC = () => {
             <button className={styles.navIconBtn} onClick={() => setShowFriendsModal(true)} title="Ver amigos" aria-label="Ver amigos">
               <Users size={18} />
             </button>
-            <button className={styles.navIconBtn} aria-label="Notificaciones">🔔</button>
+            <div className={styles.notificationsMenu} ref={notificationsRef}>
+              <button 
+                className={`${styles.navIconBtn} ${unreadCount > 0 ? styles.hasUnread : ''}`}
+                onClick={() => setShowNotifications(!showNotifications)}
+                aria-label="Notificaciones"
+                title="Notificaciones"
+              >
+                🔔
+                {unreadCount > 0 && <span className={styles.unreadBadge}>{unreadCount}</span>}
+              </button>
+
+              {showNotifications && (
+                <ViewTransition>
+                  <div className={styles.notificationsDropdown} role="menu" aria-label="Notificaciones de usuario">
+                    <div className={styles.dropdownHeader}>
+                      <span className={styles.dropdownTitle}>Notificaciones</span>
+                      {unreadCount > 0 && (
+                        <button className={styles.markAllReadBtn} onClick={handleMarkAllRead}>
+                          Marcar leídas
+                        </button>
+                      )}
+                    </div>
+                    <div className={styles.dropdownDivider} />
+                    <div className={styles.notificationsList}>
+                      {notifications.length === 0 ? (
+                        <div className={styles.emptyNotifications}>
+                          <p>No tienes notificaciones aún.</p>
+                        </div>
+                      ) : (
+                        notifications.map((n) => {
+                          const itemIcon = n.type === 'LIKE' ? '❤️' : n.type === 'COMMENT' ? '💬' : n.type === 'FOLLOW' ? '👤' : n.type === 'BADGE' ? '🏅' : '🔔';
+                          return (
+                            <div key={n.id} className={`${styles.notificationItem} ${!n.isRead ? styles.unreadItem : ''}`}>
+                              <div className={styles.notificationMain}>
+                                {n.sender?.avatarUrl ? (
+                                  <img src={n.sender.avatarUrl} alt="Avatar" className={styles.notificationAvatar} />
+                                ) : (
+                                  <span className={styles.notificationEmoji}>{itemIcon}</span>
+                                )}
+                                <div className={styles.notificationContent}>
+                                  <p className={styles.notificationText}>{n.message}</p>
+                                  <span className={styles.notificationTime}>
+                                    {new Date(n.createdAt).toLocaleDateString()} a las {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Solicitud de amistad */}
+                              {n.type === 'SYSTEM' && n.message.toLowerCase().includes('amistad') && (
+                                <div className={styles.notificationActions}>
+                                  <button 
+                                    className={styles.acceptFriendBtn} 
+                                    onClick={() => handleAcceptFriend(n.referenceId, n.id)}
+                                  >
+                                    Aceptar
+                                  </button>
+                                  <button 
+                                    className={styles.rejectFriendBtn} 
+                                    onClick={() => handleMarkAsRead(n.id)}
+                                  >
+                                    Ignorar
+                                  </button>
+                                </div>
+                              )}
+
+                              {!n.isRead && (
+                                <button 
+                                  className={styles.markReadBtn} 
+                                  onClick={() => handleMarkAsRead(n.id)}
+                                  title="Marcar como leída"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </ViewTransition>
+              )}
+            </div>
 
             {showFriendsModal && user && (
                <FriendsModal

@@ -1,5 +1,6 @@
 import prisma from '../../lib/prisma';
 import { BadgeService } from '../social/badge.service';
+import { notificationService } from '../notification/notification.service';
 
 const badgeService = new BadgeService();
 
@@ -128,6 +129,21 @@ export class FeedService {
         update: { createdAt: new Date() }
       });
 
+      // Notificar al creador del post si el que comenta es otro usuario
+      if (postExists.userId !== userId) {
+        const commenter = await tx.user.findUnique({
+          where: { id: userId },
+          select: { username: true }
+        });
+        const commenterName = commenter?.username || 'Un usuario';
+
+        await notificationService.createNotification(postExists.userId, 'COMMENT', {
+          title: 'Nuevo comentario',
+          message: `@${commenterName} comentó en tu publicación.`,
+          referenceId: postId
+        }).catch(err => console.error('[Notification]: Error al notificar comentario', err));
+      }
+
       return comment;
     });
   }
@@ -198,6 +214,21 @@ export class FeedService {
     });
 
     await this.upsertMemory(userId, postId, 'SHARE');
+
+    // Notificar al dueño de la publicación original si es compartida por otro usuario
+    if (originalPost.userId !== userId) {
+      const sharer = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true }
+      });
+      const sharerName = sharer?.username || 'Un usuario';
+
+      await notificationService.createNotification(originalPost.userId, 'SYSTEM', {
+        title: 'Publicación Compartida',
+        message: `@${sharerName} compartió tu publicación.`,
+        referenceId: postId
+      }).catch(err => console.error('[Notification]: Error al notificar compartido', err));
+    }
 
     return sharedPost;
   }

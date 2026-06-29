@@ -82,11 +82,87 @@ export class NotificationService {
   }
 
   async getUserNotifications(userId: string) {
-    return prisma.notification.findMany({
+    const rawNotifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50
     });
+
+    const enriched = await Promise.all(
+      rawNotifications.map(async (n) => {
+        let sender = null;
+        let message = '';
+        let title = '';
+
+        if (n.type === 'FOLLOW' || n.type === 'MESSAGE' || (n.type === 'SYSTEM' && n.referenceId)) {
+          // Buscamos el usuario asociado al referenceId
+          const senderUser = await prisma.user.findUnique({
+            where: { id: n.referenceId ?? '' },
+            select: { id: true, username: true, avatarUrl: true }
+          });
+          if (senderUser) {
+            sender = senderUser;
+            if (n.type === 'FOLLOW') {
+              title = '¡Nuevo seguidor!';
+              message = `@${senderUser.username} comenzó a seguirte.`;
+            } else if (n.type === 'SYSTEM') {
+              title = 'Solicitud de Amistad';
+              message = `@${senderUser.username} te ha enviado una solicitud de amistad.`;
+            }
+          }
+        } else if (n.type === 'LIKE' && n.referenceId) {
+          // El referenceId es el postId. Busquemos la última reacción en ese post
+          const lastLike = await prisma.like.findFirst({
+            where: { postId: n.referenceId, NOT: { userId } },
+            orderBy: { createdAt: 'desc' },
+            include: { user: { select: { id: true, username: true, avatarUrl: true } } }
+          });
+          if (lastLike) {
+            sender = lastLike.user;
+            title = '¡Reacción!';
+            message = `@${lastLike.user.username} reaccionó a tu publicación.`;
+          } else {
+            title = '¡Reacción!';
+            message = 'Alguien reaccionó a tu publicación.';
+          }
+        } else if (n.type === 'COMMENT' && n.referenceId) {
+          // El referenceId es el postId. Busquemos el último comentario en ese post
+          const lastComment = await prisma.comment.findFirst({
+            where: { postId: n.referenceId, NOT: { userId } },
+            orderBy: { createdAt: 'desc' },
+            include: { user: { select: { id: true, username: true, avatarUrl: true } } }
+          });
+          if (lastComment) {
+            sender = lastComment.user;
+            title = 'Nuevo comentario';
+            message = `@${lastComment.user.username} comentó en tu publicación.`;
+          } else {
+            title = 'Nuevo comentario';
+            message = 'Alguien comentó en tu publicación.';
+          }
+        }
+
+        // Valores por defecto
+        if (!message) {
+          if (n.type === 'BADGE') {
+            title = '¡Nueva medalla!';
+            message = '¡Has ganado una nueva medalla en AniNexo!';
+          } else {
+            title = 'Actualización del Nexo';
+            message = 'Tienes una nueva notificación en tu cuenta.';
+          }
+        }
+
+        return {
+          ...n,
+          title,
+          message,
+          sender
+        };
+      })
+    );
+
+    return enriched;
   }
 
   async markAsRead(notificationId: string) {
