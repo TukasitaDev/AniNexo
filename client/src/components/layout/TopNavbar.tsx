@@ -304,7 +304,7 @@ export const TopNavbar: React.FC = () => {
                 aria-label="Notificaciones"
                 title="Notificaciones"
               >
-                🔔
+                <img src="/campana.png" alt="Notificaciones" className={styles.bellIcon} />
                 {unreadCount > 0 && <span className={styles.unreadBadge}>{unreadCount}</span>}
               </button>
 

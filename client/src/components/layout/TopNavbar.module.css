@@ -435,6 +435,20 @@
   align-items: center;
 }
 
+.bellIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.3));
+  transition: filter 0.2s, transform 0.2s;
+}
+
+.navIconBtn:hover .bellIcon {
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.7));
+  transform: rotate(-10deg) scale(1.1);
+}
+
 .unreadBadge {
   position: absolute;
   top: -5px;
