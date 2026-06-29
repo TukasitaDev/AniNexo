@@ -103,7 +103,7 @@ export default function LoginPage() {
       {/* Lado Derecho: Formulario */}
       <section className="form-side">
         <div className="login-card">
-          <h1 className="login-title">Login</h1>
+          <h1 className="login-title">Iniciar sesión</h1>
           
           {errors.general && (
             <div className="error-msg-general">
