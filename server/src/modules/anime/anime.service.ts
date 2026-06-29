@@ -2,6 +2,7 @@ import prisma from '../../lib/prisma';
 import axios from 'axios';
 import { addJob, QUEUES } from '../../lib/queue';
 import { logger } from '../../lib/logger';
+import { translateText } from '../../lib/translate';
 
 const ANILIST_URL = 'https://graphql.anilist.co';
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -142,6 +143,18 @@ export class AnimeService {
         await sleep(500); // Evitar 429
       }
 
+      // Traducir sinopsis
+      const descriptionTranslated = await translateText(baseData.description);
+
+      // Traducir tags si existen
+      if (baseData.tags) {
+        for (const t of baseData.tags) {
+          if (t.description) {
+            t.description = await translateText(t.description);
+          }
+        }
+      }
+
       const titleStr = baseData.title.english || baseData.title.romaji;
       const slug = `${baseData.id}-${titleStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
 
@@ -149,7 +162,7 @@ export class AnimeService {
         where: { id: baseData.id },
         update: {
           slug, titleRomaji: baseData.title.romaji, titleEnglish: baseData.title.english, titleNative: baseData.title.native,
-          description: baseData.description, type: baseData.type, status: baseData.status, episodes: baseData.episodes,
+          description: descriptionTranslated, type: baseData.type, status: baseData.status, episodes: baseData.episodes,
           duration: baseData.duration, season: baseData.season, seasonYear: baseData.seasonYear, averageScore: baseData.averageScore,
           popularity: baseData.popularity, coverImage: baseData.coverImage.extraLarge, bannerImage: baseData.bannerImage,
           trailerYoutubeId: baseData.trailer?.site === 'youtube' ? baseData.trailer.id : null,
@@ -163,7 +176,7 @@ export class AnimeService {
         },
         create: {
           id: baseData.id, slug, titleRomaji: baseData.title.romaji, titleEnglish: baseData.title.english, titleNative: baseData.title.native,
-          description: baseData.description, type: baseData.type, status: baseData.status, episodes: baseData.episodes,
+          description: descriptionTranslated, type: baseData.type, status: baseData.status, episodes: baseData.episodes,
           duration: baseData.duration, season: baseData.season, seasonYear: baseData.seasonYear, averageScore: baseData.averageScore,
           popularity: baseData.popularity, coverImage: baseData.coverImage.extraLarge, bannerImage: baseData.bannerImage,
           trailerYoutubeId: baseData.trailer?.site === 'youtube' ? baseData.trailer.id : null,
@@ -205,10 +218,11 @@ export class AnimeService {
       for (const edge of allCharacters) {
         const char = edge.node;
         try {
+          const charDescTranslated = await translateText(char.description);
           await prisma.character.upsert({
             where: { id: char.id },
-            update: { name: char.name.full, image: char.image.large, description: char.description },
-            create: { id: char.id, name: char.name.full, image: char.image.large, description: char.description }
+            update: { name: char.name.full, image: char.image.large, description: charDescTranslated },
+            create: { id: char.id, name: char.name.full, image: char.image.large, description: charDescTranslated }
           });
           await prisma.characterOnAnime.upsert({
             where: { animeId_characterId: { animeId: anime.id, characterId: char.id } },
