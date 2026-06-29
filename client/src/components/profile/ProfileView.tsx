@@ -11,9 +11,7 @@ import { PostItem } from '../feed/PostItem';
 import { UserListModal } from './UserListModal';
 import { ChatModal } from './ChatModal';
 import { useSocket } from '../../hooks/useSocket';
-
-
-interface ProfileViewProps {
+import styles from './ProfileView.module.css';interface ProfileViewProps {
   profile: any;
   animeList: any[];
   collection?: any[];
@@ -41,7 +39,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
   const [isSending, setIsSending] = useState(false);
   
   const { socket, isConnected } = useSocket(conversationId || undefined);
-  const themeColor = profile.themeColor || '#00E5FF';
+  const themeColor = profile.themeColor || '#FF007F'; // Magenta Social por defecto
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -375,7 +373,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
   }
 
   return (
-    <div className="profile-wrapper">
+    <div className={styles.profileContainer}>
       {showEditModal && (
         <EditProfileModal 
           profile={profile} 
@@ -384,241 +382,228 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
         />
       )}
       
-      <Card className="profile-header-card" style={{ borderColor: profile.isPremium ? 'gold' : themeColor }} data-tour="profile-header">
-        <div className="avatar-section">
-           <div 
-            className="avatar-container cursor-pointer" 
+      {/* 1. Full-Width Banner & Header */}
+      <div 
+        className={styles.coverBanner} 
+        data-tour="profile-header"
+        style={{
+          backgroundImage: profile.intelligence?.socialProfile?.favAnime?.bannerImage || profile.intelligence?.socialProfile?.favAnime?.coverImage
+            ? `url(${profile.intelligence.socialProfile.favAnime.bannerImage || profile.intelligence.socialProfile.favAnime.coverImage})`
+            : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className={styles.coverOverlay} style={{ background: profile.intelligence?.socialProfile?.favAnime ? 'linear-gradient(to top, rgba(3, 5, 8, 1) 0%, rgba(3, 5, 8, 0.7) 40%, rgba(3, 5, 8, 0.3) 100%)' : undefined }}></div>
+        <div className={styles.headerContent}>
+          <div 
+            className={styles.avatarWrapper}
             style={{ borderColor: themeColor }}
             onClick={() => isOwnProfile && setShowProfiling(true)}
             title={isOwnProfile ? "Recalcular ADN de Anime" : ""}
           >
-              <Image 
-                src={profile.avatarUrl || `https://ui-avatars.com/api/?name=${profile.username}&background=random&color=fff`} 
-                alt={profile.username}
-                fill
-                style={{ objectFit: 'cover' }}
-              />
-           </div>
-           {profile.isPremium && <span className="premium-label">PREMIUM</span>}
-        </div>
-
-        <div className="info-section">
-          <div className="name-row">
-            <h1 className="username" style={{ color: themeColor }}>{profile.username}</h1>
-            {profile.archetype && (
-              <div className="archetype-badge" style={{ backgroundColor: themeColor + '22', color: themeColor, borderColor: themeColor }}>
-                ✨ {profile.archetype}
-              </div>
-            )}
-            {isOwnProfile && (
-              <button className="btn-activate-dna" onClick={() => setShowProfiling(true)} data-tour="profile-edit-btn">
-                ⚙️ Personalizar Perfil
-              </button>
-            )}
-          </div>
-          
-          <div className="real-name" style={{ color: '#aaa', fontSize: '1.2rem', marginBottom: '15px' }}>
-            {profile.firstName} {profile.lastName} {profile.country && `• ${profile.country}`}
-          </div>
-
-          <p className="bio">{profile.bio || 'Este usuario prefiere mantener el misterio...'}</p>
-          
-          <div className="stats-row">
-            <div className="stat clickable" onClick={() => setShowFollowersModal(true)}>
-              <strong>{profile._count?.followers || 0}</strong> Seguidores
-            </div>
-            <div className="stat clickable" onClick={() => setShowFollowingModal(true)}>
-              <strong>{profile._count?.following || 0}</strong> Siguiendo
-            </div>
-          </div>
-
-{!isOwnProfile && (
-             <div className="actions">
-               <button 
-                 className="btn-follow" 
-                 style={{ 
-                   backgroundColor: isFollowing ? '#444' : themeColor,
-                   opacity: followLoading || !currentUser?.isVerified ? 0.5 : 1,
-                   cursor: !currentUser?.isVerified ? 'not-allowed' : 'pointer'
-                 }} 
-                 onClick={handleToggleFollow}
-                 disabled={followLoading || !currentUser?.isVerified}
-                 title={!currentUser?.isVerified ? 'Verifica tu cuenta para seguir usuarios' : ''}
-               >
-                 {isFollowing ? 'Siguiendo' : 'Seguir'}
-               </button>
-               <button 
-                 className="btn-msg" 
-                 onClick={handleStartMessage}
-                 disabled={!currentUser?.isVerified}
-                 title={!currentUser?.isVerified ? 'Verifica tu cuenta para enviar mensajes' : ''}
-                 style={{ opacity: !currentUser?.isVerified ? 0.5 : 1, cursor: !currentUser?.isVerified ? 'not-allowed' : 'pointer' }}
-               >
-                 Mensaje
-               </button>
-               <button 
-                 className="btn-msg" 
-                 onClick={handleAddFriend}
-                 disabled={friendRequested || !currentUser?.isVerified}
-                 style={{ 
-                   opacity: friendRequested || !currentUser?.isVerified ? 0.5 : 1, 
-                   cursor: friendRequested || !currentUser?.isVerified ? 'not-allowed' : 'pointer' 
-                 }}
-                 title={friendRequested ? 'Ya es amigo o solicitud enviada' : !currentUser?.isVerified ? 'Verifica tu cuenta para agregar amigos' : 'Agregar amigo'}
-               >
-                 {friendRequested ? 'Amigo/Agregado' : 'Agregar amigo'}
-               </button>
-             </div>
-           )}
-
-          {/* Followers Modal */}
-          {showFollowersModal && (
-            <UserListModal type="followers" userId={profile.id} onClose={() => setShowFollowersModal(false)} />
-          )}
-
-          {/* Following Modal */}
-          {showFollowingModal && (
-            <UserListModal type="following" userId={profile.id} onClose={() => setShowFollowingModal(false)} />
-          )}
-
-          {/* Chat Modal */}
-          {showChatModal && (
-            <ChatModal 
-              profile={profile}
-              currentUser={currentUser}
-              conversationId={conversationId}
-              chatMessages={chatMessages}
-              chatInput={chatInput}
-              isConnected={isConnected}
-              isSending={isSending}
-              setChatInput={setChatInput}
-              onSendMessage={(content: string) => {
-                if (!socket) return;
-                setIsSending(true);
-                const newMsg = {
-                  conversationId: conversationId,
-                  senderId: currentUser?.id,
-                  content
-                };
-                socket.emit('send_message', newMsg);
-                setChatMessages(prev => [...prev, {
-                  ...newMsg,
-                  id: Date.now(),
-                  createdAt: new Date().toISOString(),
-                  sender: { username: currentUser?.username, avatarUrl: currentUser?.avatarUrl }
-                }]);
-                setChatInput('');
-                setTimeout(() => {
-                  const el = document.querySelector('.chat-messages');
-                  el?.scrollTo(0, el.scrollHeight);
-                }, 100);
-                setIsSending(false);
-              }}
-              onClose={() => setShowChatModal(false)}
+            <Image 
+              src={profile.avatarUrl || `https://ui-avatars.com/api/?name=${profile.username}&background=random&color=fff`} 
+              alt={profile.username}
+              fill
+              className={styles.avatarImage}
             />
-          )}
-        </div>
-      </Card>
+            {profile.isPremium && <span className={styles.premiumLabel}>PREMIUM</span>}
+          </div>
 
-      <div className="stories-container">
-        <div className="stories-scroll">
+          <div className={styles.headerInfo}>
+            <div>
+              <div className={styles.mainInfo}>
+                <h1>
+                  {profile.username}
+                  {profile.archetype && (
+                    <span className={styles.archetypeBadge} style={{ color: themeColor, borderColor: themeColor }}>
+                      ✨ {profile.archetype}
+                    </span>
+                  )}
+                </h1>
+              </div>
+              <div className={styles.realName}>
+                {profile.firstName} {profile.lastName} {profile.country && `• ${profile.country}`}
+              </div>
+              <div className={styles.statsRow}>
+                <div className={styles.statItem} onClick={() => setShowFollowersModal(true)}>
+                  <strong>{profile._count?.followers || 0}</strong> Seguidores
+                </div>
+                <div className={styles.statItem} onClick={() => setShowFollowingModal(true)}>
+                  <strong>{profile._count?.following || 0}</strong> Siguiendo
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.headerActions}>
+              {isOwnProfile ? (
+                <>
+                  <button className={styles.btnSecondary} onClick={() => setShowProfiling(true)}>
+                    ⚙️ Personalizar ADN
+                  </button>
+                  <button className={styles.btnPrimary} onClick={() => setShowEditModal(true)}>
+                    ✏️ Editar Perfil
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className={styles.btnSecondary} 
+                    onClick={handleAddFriend}
+                    disabled={friendRequested || !currentUser?.isVerified}
+                    title={!currentUser?.isVerified ? 'Verifica tu cuenta' : 'Agregar amigo'}
+                  >
+                    👤 {friendRequested ? 'Amigo/Agregado' : 'Agregar amigo'}
+                  </button>
+                  <button 
+                    className={styles.btnSecondary} 
+                    onClick={handleStartMessage}
+                    disabled={!currentUser?.isVerified}
+                  >
+                    💬 Mensaje
+                  </button>
+                  <button 
+                    className={styles.btnPrimary}
+                    onClick={handleToggleFollow}
+                    disabled={followLoading || !currentUser?.isVerified}
+                  >
+                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Three-Column Main Grid */}
+      <div className={styles.mainGrid}>
+        
+        {/* Left Column: Info & DNA */}
+        <div className={styles.leftColumn}>
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>🌍 Información</h2>
+            {profile.bio && <p className={styles.bioText}>{profile.bio}</p>}
+            <div className={styles.infoList}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoIcon}>👤</span>
+                Miembro desde {new Date(profile.createdAt || Date.now()).getFullYear()}
+              </div>
+              {profile.country && (
+                <div className={styles.infoItem}>
+                  <span className={styles.infoIcon}>📍</span>
+                  De {profile.country}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>🧬 ADN de Anime</h2>
+            <div className={styles.dnaTags}>
+              {profile.affinities?.length > 0 ? (
+                profile.affinities.filter((a: any) => a.category === 'GENRE').slice(0, 8).map((a: any) => (
+                  <span key={a.name} className={styles.dnaTag} style={{ color: themeColor, borderColor: themeColor + '44' }}>
+                    #{a.name}
+                  </span>
+                ))
+              ) : (
+                <p className="empty-info" style={{ color: '#888', fontStyle: 'italic' }}>Sin datos de afinidad.</p>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>🎭 Perfil Emocional</h2>
+            <div className={styles.emotionPills}>
+              {profile.intelligence?.emotionProfile ? (
+                Object.keys(profile.intelligence.emotionProfile).map(key => (
+                  <div key={key} className={styles.emotionPill}>
+                    {key}
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: '#888', fontStyle: 'italic', fontSize: '0.9rem' }}>Aún no sincronizado.</p>
+              )}
+            </div>
+          </div>
+          
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>🏆 Logros</h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(255,215,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,215,0,0.4)' }}>⭐</div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(0,229,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,229,255,0.4)' }}>🔥</div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(255,0,127,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,0,127,0.4)' }}>💎</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Center Column: Posts Feed */}
+        <div className={styles.centerColumn}>
           {isOwnProfile && (
-            <div className="story-item create">
-              <label className="story-bubble create" style={{ borderColor: themeColor }}>
-                <input type="file" accept="image/*" onChange={handleStoryUpload} hidden />
-                {isUploadingStory ? (
-                  <div className="loader-mini" />
-                ) : (
-                  <>
-                    <img src={profile.avatarUrl || '/default-avatar.png'} alt="Tú" />
-                    <div className="plus-icon" style={{ backgroundColor: themeColor }}>+</div>
-                  </>
-                )}
-              </label>
-              <span className="story-user">Añadir</span>
+            <div className={styles.createPostWrapper}>
+              <CreatePost onPostCreated={fetchUserPosts} />
             </div>
           )}
 
-          {stories.map((group) => (
-            <div key={group.user.id} className="story-item" onClick={() => setSelectedStoryGroup(group)}>
-              <div className="story-bubble" style={{ borderColor: themeColor }}>
-                <img src={group.stories[0]?.mediaUrl || group.user.avatarUrl || '/default-avatar.png'} alt={group.user.username} />
+          <div className={styles.feedContainer}>
+            {loadingPosts ? (
+              <div className="loader-mini" style={{ margin: '20px auto' }} />
+            ) : posts.length === 0 ? (
+              <div className={styles.emptyFeed}>
+                <p>No hay publicaciones aún en este muro dimensional.</p>
               </div>
-              <span className="story-user">{group.user.id === currentUser?.id ? 'Tu Historia' : group.user.username}</span>
-            </div>
-          ))}
-
+            ) : (
+              posts.map(post => (
+                <PostItem key={post.id} post={post} />
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="intelligence-grid" data-tour="profile-stats">
-        <Card className="intel-card">
-          <h3>ADN de Anime</h3>
-          <div className="affinities-list">
-            {profile.affinities?.length > 0 ? (
-              profile.affinities.filter((a: any) => a.category === 'GENRE').slice(0, 8).map((a: any) => (
-                <span key={a.name} className="affinity-tag" style={{ color: themeColor, borderColor: themeColor + '44' }}>
-                  #{a.name}
-                </span>
-              ))
-            ) : (
-              <p className="empty-info">Sin datos de afinidad. Completa el cuestionario.</p>
-            )}
-          </div>
-        </Card>
-
-        <Card className="intel-card">
-          <h3>Perfil Emocional</h3>
-          <div className="emotions-badges">
-            {profile.intelligence?.emotionProfile ? (
-              Object.keys(profile.intelligence.emotionProfile).map(key => (
-                <div key={key} className="emotion-pill">
-                  <span className="emotion-name">{key}</span>
+        {/* Right Column: Favorites & Activity (Mocked as requested) */}
+        <div className={styles.rightColumn}>
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>⭐ Colección</h2>
+            <div className={styles.favoritesGrid}>
+              {/* Mocked grid items to simulate favorite animes */}
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className={styles.favoriteItem}>
+                  <img src={`https://placehold.co/200x300/1a1a2e/8b5cf6?text=Anime+${i}`} alt={`Anime ${i}`} className={styles.favoriteImg} />
                 </div>
-              ))
-            ) : (
-              <p className="empty-info">Sincroniza tus emociones con Nexo IA.</p>
-            )}
+              ))}
+            </div>
+            <button className={styles.viewAllBtn}>Ver colección completa</button>
           </div>
-        </Card>
-      </div>
 
-      <div className="legends-section">
-        <h2 style={{ color: themeColor }}>Leyendas Personales</h2>
-        <div className="legends-grid">
-          {profile.intelligence?.socialProfile?.favAnime && typeof profile.intelligence.socialProfile.favAnime === 'object' ? (
-            <a href={`/dashboard/anime/${profile.intelligence.socialProfile.favAnime.id}`} className="legend-link">
-              <Card className="legend-card visual" style={{ borderColor: themeColor + '44', background: 'rgba(15,15,15,0.6)' }}>
-                <div className="legend-overlay">
-                  <div className="legend-label">Anime de Culto</div>
-                  <div className="legend-name">{profile.intelligence.socialProfile.favAnime.title}</div>
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>⚡ Actividad Reciente</h2>
+            <div className={styles.activityList}>
+              <div className={styles.activityItem}>
+                <div className={styles.activityIcon}>📺</div>
+                <div className={styles.activityContent}>
+                  <p>Añadió <strong>Jujutsu Kaisen</strong> a Viendo</p>
+                  <span>Hace 2 horas</span>
                 </div>
-              </Card>
-            </a>
-          ) : (
-            <Card className="legend-card empty" style={{ borderColor: themeColor + '11' }}>
-               <div className="empty-content">
-                  <p className="empty-info">{profile.intelligence?.socialProfile?.favAnime || 'No has elegido tu anime leyenda.'}</p>
-                  {isOwnProfile && <button onClick={() => setShowProfiling(true)} className="btn-update-mini">Actualizar Visual</button>}
-               </div>
-            </Card>
-          )}
-
-          {profile.intelligence?.socialProfile?.favCharacter && typeof profile.intelligence.socialProfile.favCharacter === 'object' ? (
-            <Card className="legend-card visual" style={{ borderColor: themeColor + '44', background: 'rgba(15,15,15,0.6)' }}>
-              <div className="legend-overlay">
-                <div className="legend-label">Espíritu Afín</div>
-                <div className="legend-name">{profile.intelligence.socialProfile.favCharacter.name}</div>
               </div>
-            </Card>
-          ) : (
-            <Card className="legend-card empty" style={{ borderColor: themeColor + '11' }}>
-               <div className="empty-content">
-                  <p className="empty-info">{profile.intelligence?.socialProfile?.favCharacter || 'No has elegido tu personaje leyenda.'}</p>
-                  {isOwnProfile && <button onClick={() => setShowProfiling(true)} className="btn-update-mini">Actualizar Visual</button>}
-               </div>
-            </Card>
-          )}
+              <div className={styles.activityItem}>
+                <div className={styles.activityIcon} style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00E5FF', borderColor: 'rgba(0, 229, 255, 0.2)' }}>🏆</div>
+                <div className={styles.activityContent}>
+                  <p>Desbloqueó el logro <strong>Maratón Otaku</strong></p>
+                  <span>Ayer a las 14:30</span>
+                </div>
+              </div>
+              <div className={styles.activityItem}>
+                <div className={styles.activityIcon} style={{ background: 'rgba(255, 215, 0, 0.1)', color: 'gold', borderColor: 'rgba(255, 215, 0, 0.2)' }}>💬</div>
+                <div className={styles.activityContent}>
+                  <p>Comentó en <strong>Frieren</strong></p>
+                  <span>Hace 2 días</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -708,165 +693,57 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
         </div>
       )}
 
-      {/* Premium Toast Notification */}
+      {/* Modals from previous implementation */}
+      {showFollowersModal && (
+        <UserListModal type="followers" userId={profile.id} onClose={() => setShowFollowersModal(false)} />
+      )}
+      {showFollowingModal && (
+        <UserListModal type="following" userId={profile.id} onClose={() => setShowFollowingModal(false)} />
+      )}
+      {showChatModal && (
+        <ChatModal 
+          profile={profile}
+          currentUser={currentUser}
+          conversationId={conversationId}
+          chatMessages={chatMessages}
+          chatInput={chatInput}
+          isConnected={isConnected}
+          isSending={isSending}
+          setChatInput={setChatInput}
+          onSendMessage={(content: string) => {
+            if (!socket) return;
+            setIsSending(true);
+            const newMsg = {
+              conversationId: conversationId,
+              senderId: currentUser?.id,
+              content
+            };
+            socket.emit('send_message', newMsg);
+            setChatMessages(prev => [...prev, {
+              ...newMsg,
+              id: Date.now(),
+              createdAt: new Date().toISOString(),
+              sender: { username: currentUser?.username, avatarUrl: currentUser?.avatarUrl }
+            }]);
+            setChatInput('');
+            setTimeout(() => {
+              const el = document.querySelector('.chat-messages');
+              el?.scrollTo(0, el.scrollHeight);
+            }, 100);
+            setIsSending(false);
+          }}
+          onClose={() => setShowChatModal(false)}
+        />
+      )}
       {toast && (
-        <div className={`nexo-toast ${toast.type}`}>
-          <div className="toast-icon">
-            {toast.type === 'success' ? '✨' : toast.type === 'error' ? '⚠️' : 'ℹ️'}
-          </div>
+        <div className={`nexo-toast ${toast.type}`} style={{ 
+          position: 'fixed', bottom: '30px', right: '30px', zIndex: 2000, 
+          background: 'rgba(15, 15, 15, 0.8)', backdropFilter: 'blur(15px)', 
+          border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', padding: '15px 25px'
+        }}>
           <div className="toast-message">{toast.message}</div>
-          <div className="toast-progress" style={{ backgroundColor: themeColor }}></div>
         </div>
       )}
-
-      <style jsx>{`
-        .profile-wrapper { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-        .profile-header-card { display: flex; gap: 40px; padding: 40px; margin-bottom: 30px; background: rgba(10, 10, 10, 0.4); backdrop-filter: blur(20px); border-radius: 32px; border-width: 1px; }
-        .avatar-container { width: 180px; height: 180px; border-radius: 50%; overflow: hidden; position: relative; border: 3px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-        .premium-label { display: block; text-align: center; background: linear-gradient(gold, #b38728); color: black; font-weight: 900; font-size: 0.7rem; padding: 4px 0; border-radius: 4px; margin-top: 10px; }
-        .name-row { display: flex; align-items: center; gap: 20px; margin-bottom: 5px; }
-        .username { font-size: 3rem; font-weight: 900; margin: 0; }
-        .archetype-badge { padding: 6px 16px; border-radius: 30px; font-weight: 800; font-size: 0.85rem; border: 1px solid; letter-spacing: 0.5px; }
-        .btn-activate-dna { background: rgba(0, 229, 255, 0.1); color: #00E5FF; border: 1px dashed #00E5FF; padding: 8px 20px; border-radius: 30px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-        .btn-activate-dna:hover { background: #00E5FF; color: black; border-style: solid; }
-        .bio { color: #888; font-size: 1.1rem; margin-bottom: 25px; line-height: 1.6; max-width: 500px; }
-        .stats-row { display: flex; gap: 30px; margin-bottom: 30px; }
-        .stat { color: #555; }
-        .stat strong { color: white; margin-right: 5px; }
-        .actions { display: flex; gap: 15px; }
-        .btn-follow { border: none; padding: 12px 40px; border-radius: 12px; font-weight: 900; cursor: pointer; color: black; }
-        .btn-msg { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 12px 25px; border-radius: 12px; cursor: pointer; }
-        .intelligence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
-        .intel-card { padding: 25px; background: rgba(15,15,15,0.3); border-radius: 24px; }
-        .intel-card h3 { margin: 0 0 20px 0; font-size: 1rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
-        .affinities-list { display: flex; flex-wrap: wrap; gap: 10px; }
-        .affinity-tag { padding: 5px 15px; border-radius: 20px; border: 1px solid; font-size: 0.85rem; font-weight: 700; }
-        .emotions-badges { display: flex; gap: 10px; flex-wrap: wrap; }
-        .emotion-pill { background: rgba(255,255,255,0.05); padding: 8px 20px; border-radius: 12px; font-weight: 600; color: #eee; }
-        .empty-info, .empty-list { color: #444; font-size: 0.9rem; font-style: italic; }
-        .list-section h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 20px; }
-        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .anime-item-card { background: #111; border-radius: 16px; overflow: hidden; border: 1px solid #222; }
-        .poster-wrap { height: 250px; overflow: hidden; }
-        .poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .poster-info { padding: 15px; }
-        .entry-status { font-size: 0.75rem; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 8px; }
-        .progress-bar { height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
-        .progress-bar .fill { height: 100%; }
-
-        .stories-container { margin-bottom: 30px; }
-        .stories-scroll { display: flex; gap: 20px; overflow-x: auto; padding: 10px 5px; scrollbar-width: none; }
-        .stories-scroll::-webkit-scrollbar { display: none; }
-        .story-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; min-width: 80px; }
-        .story-bubble { 
-          width: 75px; height: 75px; border-radius: 50%; padding: 3px; border: 3px solid; 
-          transition: all 0.3s; position: relative; background: #111;
-        }
-        .story-bubble img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-        .story-item:hover .story-bubble { transform: scale(1.1) rotate(5deg); }
-        .story-bubble.create { cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .plus-icon { 
-          position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; 
-          border-radius: 50%; color: black; display: flex; align-items: center; 
-          justify-content: center; font-size: 16px; font-weight: 900; border: 2px solid #000;
-        }
-        .story-user { font-size: 0.8rem; font-weight: 600; color: #aaa; text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
-
-        .story-viewer-overlay { 
-          position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; 
-          display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);
-        }
-        .story-viewer-content { width: 100%; max-width: 450px; height: 85vh; position: relative; border-radius: 20px; overflow: hidden; }
-        .story-viewer-media { width: 100%; height: 100%; object-fit: cover; }
-        .story-viewer-header { 
-          position: absolute; top: 0; left: 0; right: 0; padding: 20px; 
-          background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-          display: flex; align-items: center; gap: 15px;
-        }
-        .story-viewer-header img { width: 40px; height: 40px; border-radius: 50%; }
-        .story-viewer-caption { 
-          position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; 
-          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-          color: white; font-size: 1.1rem; text-align: center;
-        }
-        .btn-close-viewer { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; z-index: 10; }
-        
-        .loader-mini { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Premium Toast CSS */
-        .nexo-toast {
-          position: fixed; bottom: 30px; right: 30px; z-index: 2000;
-          background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(15px);
-          border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
-          padding: 16px 24px; display: flex; align-items: center; gap: 15px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-          animation: toast-slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          max-width: 350px; overflow: hidden;
-        }
-        .nexo-toast.success { border-left: 4px solid ${themeColor}; }
-        .nexo-toast.error { border-left: 4px solid #ff4b2b; }
-        .toast-icon { font-size: 1.2rem; }
-        .toast-message { color: white; font-size: 0.95rem; font-weight: 600; }
-        .toast-progress {
-          position: absolute; bottom: 0; left: 0; height: 3px;
-          animation: toast-progress 4s linear forwards;
-        }
-
-        @keyframes toast-slide-in {
-          from { transform: translateX(120%) scale(0.8); opacity: 0; }
-          to { transform: translateX(0) scale(1); opacity: 1; }
-        }
-        @keyframes toast-progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-
-        .legends-section, .posts-section { margin-bottom: 50px; }
-        .legends-section h2, .posts-section h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 25px; }
-        .legends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; margin-bottom: 40px; }
-        .legend-link { text-decoration: none; display: block; transition: transform 0.3s; }
-        .legend-link:hover { transform: translateY(-5px); }
-        .legend-card { 
-          position: relative; height: 140px; border-radius: 24px; overflow: hidden; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer;
-          background: rgba(15, 15, 15, 0.4); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center;
-        }
-        .legend-card:hover { transform: translateY(-8px) scale(1.02); border-color: ${themeColor}; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
-        .legend-overlay { position: relative; z-index: 1; padding: 25px 35px; width: 100%; display: flex; flex-direction: column; justify-content: center; }
-        .legend-label { font-size: 0.75rem; font-weight: 900; color: ${themeColor}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 2px; opacity: 0.8; }
-        .legend-name { font-size: 1.8rem; font-weight: 900; color: white; line-height: 1.1; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .btn-new-post { border: none; padding: 10px 20px; border-radius: 12px; font-weight: 900; color: black; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.2s; }
-        .btn-new-post:hover { transform: scale(1.05); }
-        .btn-update-mini { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #888; padding: 5px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
-        .empty-content { display: flex; flex-direction: column; align-items: center; }
-        .posts-feed { display: flex; flex-direction: column; gap: 15px; }
-        .post-item-card { padding: 25px; background: rgba(15,15,15,0.4); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .post-date { font-size: 0.8rem; color: #444; font-weight: 700; }
-        .post-body { margin: 15px 0; color: #ddd; font-size: 1.1rem; line-height: 1.5; }
-        .post-footer { display: flex; gap: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
-        .post-stat { font-size: 0.9rem; font-weight: 800; color: #666; }
-        .stat.clickable { cursor: pointer; }
-        .stat.clickable:hover strong { text-decoration: underline; }
-        .modal-overlay { 
-          position: fixed; 
-          inset: 0; 
-          background: rgba(0,0,0,0.85); 
-          backdrop-filter: blur(10px); 
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .cursor-pointer { cursor: pointer; }
-        
-        @media (max-width: 768px) {
-          .profile-header-card { flex-direction: column; align-items: center; text-align: center; }
-          .username { font-size: 2.2rem; }
-          .name-row { flex-direction: column; }
-          .intelligence-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </div>
   );
 };

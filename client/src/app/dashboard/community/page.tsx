@@ -838,7 +838,7 @@ export default function CommunityPage() {
         .community-page {
           background: radial-gradient(ellipse at 20% 0%, rgba(0,82,255,0.06) 0%, transparent 60%),
                       radial-gradient(ellipse at 80% 100%, rgba(0,229,255,0.04) 0%, transparent 60%),
-                      #080810;
+                      transparent;
           color: #f0f2f5;
           min-height: 100vh;
           width: 100%;

@@ -53,6 +53,7 @@ export const metadata: Metadata = {
   }
 };
 
+import Scene3D from "@/components/background/Scene3D";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 export default function RootLayout({
@@ -63,6 +64,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
+        <Scene3D />
         <ServiceWorkerRegistration />
         {children}
       </body>

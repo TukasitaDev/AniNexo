@@ -96,6 +96,30 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AniNexo Server is running' });
 });
 
+// Public Stats Routes
+import prisma from './lib/prisma';
+app.get('/api/stats/users', async (req, res) => {
+  try {
+    const count = await prisma.user.count();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users count' });
+  }
+});
+
+app.get('/api/stats/animes', async (req, res) => {
+  try {
+    const count = await prisma.anime.count();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch animes count' });
+  }
+});
+
+app.get('/api/roadmap', (req, res) => {
+  res.json({ upcoming: [] });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/anime', animeRoutes);

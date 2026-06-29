@@ -9,9 +9,10 @@ interface FriendsModalProps {
   userId: string;
   onClose: () => void;
   currentUser: any;
+  isDropdown?: boolean;
 }
 
-export const FriendsModal: React.FC<FriendsModalProps> = ({ userId, onClose, currentUser }) => {
+export const FriendsModal: React.FC<FriendsModalProps> = ({ userId, onClose, currentUser, isDropdown = false }) => {
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingFriend, setEditingFriend] = useState<string | null>(null);
@@ -157,7 +158,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ userId, onClose, cur
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={isDropdown ? "dropdown-overlay" : "modal-overlay"} onClick={isDropdown ? undefined : onClose}>
       {showChatModal && (
         <ChatModal
           profile={selectedFriend}
@@ -172,7 +173,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ userId, onClose, cur
           onClose={() => setShowChatModal(false)}
         />
       )}
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className={isDropdown ? "dropdown-content" : "modal-content"} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Amigos</h2>
           <button className="btn-close" onClick={onClose}>
@@ -242,6 +243,68 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ userId, onClose, cur
         </div>
 
         <style jsx>{`
+          .dropdown-overlay {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            z-index: 2500;
+            display: flex;
+            animation: fade-in 0.2s ease;
+          }
+
+          .dropdown-content {
+            width: 100%;
+            max-height: 400px;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+
+          .dropdown-content .modal-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          }
+
+          .dropdown-content .modal-header h2 {
+            font-size: 1rem;
+            color: white;
+            font-weight: 800;
+          }
+
+          .dropdown-content .friends-list {
+            padding: 8px;
+            gap: 2px;
+          }
+
+          .dropdown-content .friend-item {
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: transparent;
+            gap: 10px;
+          }
+
+          .dropdown-content .friend-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+          }
+
+          .dropdown-content .friend-avatar {
+            width: 32px;
+            height: 32px;
+          }
+
+          .dropdown-content .friend-name {
+            font-size: 0.9rem;
+            color: #ccc;
+          }
+
           .modal-overlay {
             position: fixed;
             inset: 0;

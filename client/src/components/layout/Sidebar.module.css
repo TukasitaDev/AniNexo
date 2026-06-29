@@ -8,7 +8,11 @@
   gap: var(--spacing-6);
   padding: var(--spacing-6);
   overflow-y: auto;
-  border-right: 1px solid var(--color-border);
+  border-right: var(--glass-border);
+  background: rgba(3, 5, 8, 0.6);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
 }
 
 @media (min-width: 1024px) {
@@ -54,7 +58,7 @@
 
 .active {
   color: var(--color-primary);
-  background: var(--color-primary-alpha-10);
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.1) 0%, transparent 100%);
 }
 
 .active::before {
@@ -63,11 +67,11 @@
   left: -20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
+  width: 4px;
   height: 24px;
   background: var(--color-primary);
-  border-radius: 0 var(--radius-full) var(--radius-full) 0;
-  box-shadow: 0 0 10px var(--color-primary);
+  border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
+  box-shadow: var(--shadow-neon-cyan);
 }
 
 .iconWrapper {

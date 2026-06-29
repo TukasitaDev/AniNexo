@@ -32,15 +32,34 @@ export class EmailService {
 
   /**
    * Procesa la cola de correos (Ejecutado por un worker o cron)
+   * Primero obtiene los pendientes y libera la conexión DB,
+   * luego procesa cada email secuencialmente para no saturar el pool.
    */
   async processQueue() {
-    const pending = await prisma.emailLog.findMany({
-      where: { status: 'PENDING', attempts: { lt: 3 } },
-      take: 10
-    });
+    let pending: any[] = [];
 
+    // 1. Obtener pendientes (query rápida, libera la conexión inmediatamente)
+    try {
+      pending = await prisma.emailLog.findMany({
+        where: { status: 'PENDING', attempts: { lt: 3 } },
+        take: 5 // Reducido de 10 a 5 para menos presión en el pool
+      });
+    } catch (error) {
+      logger.error('[EmailService] Error obteniendo emails pendientes:', error);
+      return;
+    }
+
+    if (pending.length === 0) return;
+
+    logger.info(`[EmailService] Procesando ${pending.length} emails pendientes...`);
+
+    // 2. Procesar secuencialmente (no en paralelo) para no saturar conexiones
     for (const email of pending) {
-      await this.sendFromLog(email);
+      try {
+        await this.sendFromLog(email);
+      } catch (error) {
+        logger.error(`[EmailService] Error procesando email ${email.id}:`, error);
+      }
     }
   }
 

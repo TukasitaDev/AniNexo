@@ -1,0 +1,434 @@
+/* ProfileView.module.css */
+
+/* ==========================================================================
+   Full Width Banner & Header
+   ========================================================================== */
+.profileContainer {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.coverBanner {
+  width: 100%;
+  height: 350px;
+  position: relative;
+  background: linear-gradient(135deg, #0a0d14 0%, #1a0b2e 50%, #001233 100%);
+  border-bottom: var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.coverOverlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to top, rgba(3, 5, 8, 1) 0%, rgba(3, 5, 8, 0.4) 30%, transparent 100%);
+  pointer-events: none;
+}
+
+.headerContent {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+  transform: translateY(60px); /* Push avatar down to overlap banner */
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+}
+
+.avatarWrapper {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: var(--color-surface-solid);
+  padding: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform var(--transition-bounce);
+}
+
+.avatarWrapper:hover {
+  transform: scale(1.05);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent; /* Colored via inline style later */
+}
+
+.premiumLabel {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--color-social-main), var(--color-social-alt));
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-neon-magenta);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.headerInfo {
+  flex-grow: 1;
+  padding-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.mainInfo h1 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0 0 5px 0;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.archetypeBadge {
+  font-size: 0.9rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: var(--glass-blur);
+}
+
+.realName {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 15px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 25px;
+}
+
+.statItem {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  color: var(--color-text-muted);
+}
+
+.statItem:hover {
+  color: var(--color-text-main);
+}
+
+.statItem strong {
+  color: var(--color-text-main);
+  font-size: 1.1rem;
+  margin-right: 6px;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 20px;
+}
+
+.btnPrimary, .btnSecondary {
+  padding: 10px 24px;
+  border-radius: var(--border-radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.btnPrimary {
+  background: var(--color-social-main);
+  color: #fff;
+  box-shadow: var(--shadow-neon-magenta);
+}
+
+.btnPrimary:hover {
+  background: var(--color-social-hover);
+  transform: translateY(-2px);
+}
+
+.btnSecondary {
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+}
+
+.btnSecondary:hover {
+  background: var(--color-surface-hover);
+  transform: translateY(-2px);
+}
+
+
+/* ==========================================================================
+   3-Column Layout Main Content
+   ========================================================================== */
+.mainGrid {
+  max-width: 1200px;
+  width: 100%;
+  margin: 100px auto 40px; /* Top margin to account for overlapping avatar */
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.sectionCard {
+  background: var(--color-surface);
+  border: var(--glass-border);
+  border-radius: var(--border-radius-xl);
+  padding: 24px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   Left Column: Info, Bio, DNA
+   ========================================================================== */
+.bioText {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.infoIcon {
+  color: var(--color-social-main);
+  font-size: 1.2rem;
+}
+
+.dnaTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dnaTag {
+  padding: 6px 14px;
+  border-radius: var(--border-radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.emotionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emotionPill {
+  padding: 6px 14px;
+  border-radius: var(--border-radius-md);
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--glass-border);
+}
+
+/* ==========================================================================
+   Center Column: Feed & Creation
+   ========================================================================== */
+.createPostWrapper {
+  margin-bottom: 24px;
+}
+
+.feedContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.emptyFeed {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  background: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  border: var(--glass-border);
+}
+
+/* ==========================================================================
+   Right Column: Favorites & Activity
+   ========================================================================== */
+.favoritesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.favoriteItem {
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--transition-fast);
+  cursor: pointer;
+}
+
+.favoriteItem:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.favoriteImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.viewAllBtn {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--glass-border);
+  color: var(--color-text-main);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.viewAllBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.activityItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.activityIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 0, 127, 0.1);
+  color: var(--color-social-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  border: 1px solid rgba(255, 0, 127, 0.2);
+}
+
+.activityContent p {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.activityContent span {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .mainGrid {
+    grid-template-columns: 300px 1fr; /* Right column drops below or hidden */
+  }
+  
+  .rightColumn {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 15px;
+    transform: translateY(30px);
+  }
+  
+  .headerInfo {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .mainInfo h1 {
+    justify-content: center;
+  }
+  
+  .statsRow {
+    justify-content: center;
+  }
+  
+  .mainGrid {
+    grid-template-columns: 1fr;
+    margin-top: 180px;
+  }
+  
+  .rightColumn {
+    grid-template-columns: 1fr;
+  }
+}

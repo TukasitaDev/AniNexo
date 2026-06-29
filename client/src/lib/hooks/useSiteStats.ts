@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 
@@ -17,20 +17,29 @@ export const useSiteStats = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
+        
+        // Función auxiliar para fetch seguro
+        const safeFetchJson = async (url: string) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('La respuesta no es un JSON válido');
+          }
+          return res.json();
+        };
+
         // Fetch users count
-        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/stats/users`);
-        const usersData = await usersRes.json();
+        const usersData = await safeFetchJson(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/stats/users`);
+        
         // Fetch animes count
-        const animesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/stats/animes`);
-        const animesData = await animesRes.json();
+        const animesData = await safeFetchJson(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/stats/animes`);
+        
         // Fetch roadmap (optional)
         let upcoming: Array<{ feature: string; eta: string }> = [];
         try {
-          const roadmapRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/roadmap`);
-          if (roadmapRes.ok) {
-            const roadmapData = await roadmapRes.json();
-            upcoming = roadmapData.upcoming || [];
-          }
+          const roadmapData = await safeFetchJson(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/roadmap`);
+          upcoming = roadmapData.upcoming || [];
         } catch (e) {
           // ignore roadmap errors
         }
@@ -42,7 +51,7 @@ export const useSiteStats = () => {
         });
       } catch (err) {
         console.error('Failed to fetch site stats:', err);
-        setError('No se pudieron cargar las estadA-sticas');
+        setError('No se pudieron cargar las estadísticas');
       } finally {
         setLoading(false);
       }

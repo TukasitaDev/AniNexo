@@ -18,3 +18,97 @@ body {
   padding: 0;
   margin: 0;
 }
+
+/* ==========================================================================
+   Utility Classes - Premium UI System
+   ========================================================================== */
+
+/* Glassmorphism Containers */
+.glass-panel {
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.glass-panel-solid {
+  background: var(--color-surface-solid);
+  border: var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Neon Text & Gradients */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-magenta {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--color-social-main) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-glow-cyan {
+  color: #fff;
+  text-shadow: 0 0 10px var(--color-primary-glow), 0 0 20px var(--color-primary-glow);
+}
+
+.text-glow-magenta {
+  color: #fff;
+  text-shadow: 0 0 10px var(--color-social-glow), 0 0 20px var(--color-social-glow);
+}
+
+/* Animations & Micro-interactions */
+.hover-lift {
+  transition: transform var(--transition-bounce), box-shadow var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-soft);
+}
+
+.hover-glow-cyan {
+  transition: all var(--transition-fast);
+}
+
+.hover-glow-cyan:hover {
+  box-shadow: var(--shadow-neon-cyan);
+  border-color: rgba(0, 229, 255, 0.4);
+}
+
+.hover-glow-magenta {
+  transition: all var(--transition-fast);
+}
+
+.hover-glow-magenta:hover {
+  box-shadow: var(--shadow-neon-magenta);
+  border-color: rgba(255, 0, 127, 0.4);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

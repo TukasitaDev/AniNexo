@@ -22,24 +22,30 @@
 .primary {
   background: var(--color-primary);
   color: var(--color-background);
-  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+  box-shadow: var(--shadow-neon-cyan);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .primary:hover {
   background: var(--color-primary-hover);
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.5);
-  transform: translateY(-2px);
+  box-shadow: 0 0 25px var(--color-primary-glow), inset 0 0 15px rgba(255, 255, 255, 0.5);
+  transform: translateY(-3px) scale(1.02);
 }
 
 .secondary {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
   color: var(--color-text-main);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-soft);
 }
 
 .secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-surface-hover);
   border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .ghost {

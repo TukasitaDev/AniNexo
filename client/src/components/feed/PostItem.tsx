@@ -344,7 +344,7 @@ export function PostItem({ post }: { post: PostData }) {
   const isOwner = currentUserId === post.user.id;
 
 return (
-    <Card className="fb-post-card">
+    <Card className="fb-post-card glass-panel hover-lift hover-glow-magenta">
       {/* Header */}
       <div className="post-header">
         <img 

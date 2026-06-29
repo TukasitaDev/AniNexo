@@ -1,17 +1,37 @@
 :root {
-  --color-background: #050505; /* Dark Premium */
-  --color-surface: #0a0a0a;
-  --color-surface-hover: #111111;
-  --color-primary: #00E5FF; /* AniNexo Cyan */
+  /* Fondos - Deep Navy & Dark Space */
+  --color-background: #030508;
+  --color-surface: rgba(10, 13, 20, 0.6);
+  --color-surface-hover: rgba(18, 22, 33, 0.8);
+  --color-surface-solid: #0a0d14;
+  --color-surface-border: rgba(255, 255, 255, 0.05);
+
+  /* Acentos Wiki/Exploración (Cian) */
+  --color-primary: #00E5FF;
   --color-primary-hover: #00B8CC;
-  --color-secondary: #0052FF; /* AniNexo Electric Blue */
-  --color-accent: #0052FF;
-  --color-text-main: #FFFFFF;
-  --color-text-muted: #888888;
+  --color-primary-glow: rgba(0, 229, 255, 0.3);
+
+  /* Acentos Sociales (Magenta & Violeta) */
+  --color-social-main: #FF007F;
+  --color-social-hover: #CC0066;
+  --color-social-glow: rgba(255, 0, 127, 0.3);
   
+  --color-social-alt: #7000FF;
+  --color-social-alt-glow: rgba(112, 0, 255, 0.3);
+
+  /* Mantenimiento de legacy variables para no romper otros componentes inmediatamente */
+  --color-secondary: #0052FF;
+  --color-accent: #0052FF;
+  
+  /* Textos */
+  --color-text-main: #F3F4F6;
+  --color-text-muted: #9CA3AF;
+  
+  /* Tipografía */
   --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   --font-family-heading: 'Outfit', 'Inter', sans-serif;
   
+  /* Espaciado */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
@@ -19,17 +39,29 @@
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
   
-  --border-radius-sm: 4px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
+  /* Bordes */
+  --border-radius-sm: 6px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
   --border-radius-full: 9999px;
   
-  --transition-fast: 0.15s ease-in-out;
-  --transition-normal: 0.3s ease-in-out;
+  /* Efectos Premium (Glassmorphism & Shadows) */
+  --glass-blur: blur(16px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-neon-cyan: 0 0 15px var(--color-primary-glow), inset 0 0 10px rgba(0, 229, 255, 0.1);
+  --shadow-neon-magenta: 0 0 15px var(--color-social-glow), inset 0 0 10px rgba(255, 0, 127, 0.1);
+  --shadow-neon-violet: 0 0 15px var(--color-social-alt-glow), inset 0 0 10px rgba(112, 0, 255, 0.1);
+  
+  /* Animaciones */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 body {
-  background-color: var(--color-background);
+  background-color: transparent;
   color: var(--color-text-main);
   font-family: var(--font-family-base);
   margin: 0;

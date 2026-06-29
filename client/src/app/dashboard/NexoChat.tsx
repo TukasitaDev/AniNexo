@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/Button/Button';
 import { Input } from '../../components/ui/Input/Input';
 
@@ -16,6 +16,19 @@ export default function NexoChat() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    const u = localStorage.getItem('user');
+    if (u) {
+      try {
+        const parsed = JSON.parse(u);
+        if (parsed?.id) setUserId(parsed.id);
+      } catch (e) {
+        console.error('Error parsing user from localStorage', e);
+      }
+    }
+  }, []);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +40,11 @@ export default function NexoChat() {
     setLoading(true);
 
     try {
-      // Usamos el userId ficticio de "Mikasa" que creamos antes: 'cf7c92fe-efc5-483b-b195-46c515bf6d43'
-      // Ojo: En una app real, esto vendría del contexto/JWT.
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/nexo/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: 'cf7c92fe-efc5-483b-b195-46c515bf6d43', 
+          userId: userId || 'cf7c92fe-efc5-483b-b195-46c515bf6d43', 
           message: userMessage 
         })
       });
@@ -69,7 +80,7 @@ export default function NexoChat() {
           Nexo AI
         </h2>
         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
-          Conectado (OpenAI)
+          Conectado (Gemini)
         </p>
       </div>
 

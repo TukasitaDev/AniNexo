@@ -1,13 +1,11 @@
 import prisma from '../../lib/prisma';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { socketService } from '../../lib/socketService';
 import { MessagingService } from '../messaging/messaging.service';
 
 const messagingService = new MessagingService();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key', // Use dummy key if not provided
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
 
 export class NexoService {
   async chatWithNexo(userId: string, message: string) {
@@ -26,34 +24,34 @@ export class NexoService {
     const fullMessage = `CONTEXTO DEL USUARIO: ${context}\n\nMENSAJE DEL USUARIO: ${message}`;
 
     // Si no hay API key real configurada, usamos el modo MOCK
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return this.generateMockResponse(user.username, isPremium, message);
     }
 
-    // MODO REAL: Conectarse a OpenAI
+    // MODO REAL: Conectarse a Gemini
     try {
       const systemPrompt = isPremium
         ? `Eres Nexo, el asistente avanzado de inteligencia artificial de AniNexo. Estás hablando con ${user.username}, un usuario PREMIUM. Eres extremadamente culto en anime, respondes con detalle exhaustivo, recomiendas series ocultas (hidden gems) y siempre tratas al usuario como un VIP con un tono elegante, amigable y muy profundo.`
         : `Eres Nexo, el asistente IA de AniNexo. Estás hablando con ${user.username}, un usuario gratuito. Eres útil pero sarcástico, estilo tsundere. Respondes de forma breve pero certera, y de vez en cuando te quejas bromeando sobre que el usuario debería comprar Premium si quiere respuestas más largas o que dejes de ser sarcástico.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: fullMessage }
-        ],
-        max_tokens: isPremium ? 500 : 150, // Limitar tokens para usuarios gratis
-        temperature: 0.7,
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-flash-latest',
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          maxOutputTokens: isPremium ? 500 : 150,
+          temperature: 0.7,
+        }
       });
 
-      const reply = response.choices[0]?.message?.content || 'Sin respuesta';
+      const response = await model.generateContent(fullMessage);
+      const reply = response.response.text() || 'Sin respuesta';
       
       // 2. Log interacción
-      await this.logInteraction(userId, message, reply, response.usage?.total_tokens);
+      await this.logInteraction(userId, message, reply, response.response.usageMetadata?.totalTokenCount);
 
       return reply;
     } catch (error) {
-      console.error('Error de OpenAI:', error);
+      console.error('Error de Gemini:', error);
       // FALLBACK: Si falla la API real, devolver una respuesta MOCK para no romper la experiencia
       return this.generateMockResponse(user.username, isPremium, message) + " (Nota: Error en API real, usando respaldo local).";
     }
@@ -102,9 +100,9 @@ export class NexoService {
 
   private generateMockResponse(username: string, isPremium: boolean, message: string) {
     if (isPremium) {
-      return `¡Hola, maestro ${username}! (MODO MOCK). Al ser Premium, estoy a tu entera disposición. Tu mensaje fue: "${message}". Recomiendo que veas "Monster" o "Odd Taxi" si buscas una joya oculta de gran calidad. (Nota: OpenAI no está configurado o falló).`;
+      return `¡Hola, maestro ${username}! (MODO MOCK). Al ser Premium, estoy a tu entera disposición. Tu mensaje fue: "${message}". Recomiendo que veas "Monster" o "Odd Taxi" si buscas una joya oculta de gran calidad. (Nota: Gemini no está configurado o falló).`;
     } else {
-      return `¿Qué quieres, ${username}? (MODO MOCK). Acabo de leer "${message}". Si de verdad quieres que analice eso a profundidad, tal vez deberías considerar suscribirte a Premium. ¡Hmph! (Nota: OpenAI no está configurado o falló).`;
+      return `¿Qué quieres, ${username}? (MODO MOCK). Acabo de leer "${message}". Si de verdad quieres que analice eso a profundidad, tal vez deberías considerar suscribirte a Premium. ¡Hmph! (Nota: Gemini no está configurado o falló).`;
     }
   }
 
@@ -155,7 +153,7 @@ export class NexoService {
         input,
         output,
         tokensUsed: tokens ?? null,
-        modelUsed: process.env.OPENAI_API_KEY ? 'gpt-3.5-turbo' : 'MOCK'
+        modelUsed: process.env.GEMINI_API_KEY ? 'gemini-flash-latest' : 'MOCK'
       }
     });
   }

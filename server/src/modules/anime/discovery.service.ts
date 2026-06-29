@@ -9,6 +9,9 @@ const ANILIST_URL = 'https://graphql.anilist.co';
 const NEXUS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const nexusCache = new Map<string, { data: any[]; expiresAt: number }>();
 
+// Mutex para evitar múltiples persistMany concurrentes
+let isPersisting = false;
+
 export class DiscoveryService {
   private animeService: AnimeService;
 
@@ -173,7 +176,10 @@ export class DiscoveryService {
     try {
       const response = await axios.post(ANILIST_URL, { query, variables: { year: currentYear } });
       const data = response.data.data;
-      Object.values(data).forEach((page: any) => this.persistMany(page.media));
+
+      // Consolidar todos los animes en una sola llamada a persistMany
+      const allAnimes = Object.values(data).flatMap((page: any) => page.media || []);
+      this.persistMany(allAnimes);
 
       return [
         { title: '🔥 Tendencias Globales', data: data.trending.media },
@@ -385,10 +391,74 @@ export class DiscoveryService {
   }
 
   private async persistMany(animes: any[]) {
-    if (!animes) return;
-    animes.forEach(anime => {
-      this.animeService.syncWithExternal(anime.id).catch(() => {});
-    });
+    if (!animes || animes.length === 0) return;
+
+    // Solo permitir una ejecución a la vez
+    if (isPersisting) {
+      logger.info('[DiscoveryService] persistMany ya en ejecución, saltando');
+      return;
+    }
+    isPersisting = true;
+
+    // Persistencia LIGERA: solo guardar datos básicos que ya tenemos del API call inicial.
+    // NO llamar syncWithExternal (re-descarga todo de AniList, causa 429 y agota el pool).
+    // La sincronización completa se hará lazily cuando el usuario abra el detalle.
+    const persist = async () => {
+      for (const anime of animes) {
+        try {
+          if (!anime?.id) continue;
+
+          const titleRomaji = anime.title?.romaji || anime.titleRomaji || 'Unknown';
+          const titleEnglish = anime.title?.english || anime.titleEnglish || null;
+          const coverImage = anime.coverImage?.extraLarge || anime.coverImage || null;
+
+          const titleStr = titleEnglish || titleRomaji;
+          const slug = `${anime.id}-${titleStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
+
+          await prisma.anime.upsert({
+            where: { id: anime.id },
+            update: {
+              // Solo actualizar campos si estaban vacíos
+              lastSyncAt: new Date(),
+            },
+            create: {
+              id: anime.id,
+              slug,
+              titleRomaji,
+              titleEnglish,
+              coverImage,
+              averageScore: anime.averageScore || null,
+              status: anime.status || null,
+              episodes: anime.episodes || null,
+              popularity: anime.popularity || null,
+              isComplete: false, // Se completará al abrir el detalle
+            },
+          });
+
+          // Vincular géneros si los tiene
+          if (anime.genres && Array.isArray(anime.genres)) {
+            for (const genreName of anime.genres.slice(0, 5)) {
+              const name = typeof genreName === 'string' ? genreName : genreName?.name;
+              if (!name) continue;
+              try {
+                await prisma.genre.upsert({ where: { name }, update: {}, create: { name } });
+                await prisma.anime.update({ where: { id: anime.id }, data: { genres: { connect: { name } } } });
+              } catch { /* ignorar duplicados */ }
+            }
+          }
+        } catch {
+          // Ignorar errores individuales silenciosamente
+        }
+
+        // Pausa entre cada anime para no saturar
+        await new Promise(r => setTimeout(r, 100));
+      }
+    };
+
+    // Ejecutar en background sin bloquear la respuesta HTTP
+    persist()
+      .catch(() => {})
+      .finally(() => { isPersisting = false; });
   }
 
   /**

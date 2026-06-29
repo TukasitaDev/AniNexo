@@ -25,6 +25,7 @@ export const TopNavbar: React.FC = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const friendsRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -146,6 +147,9 @@ export const TopNavbar: React.FC = () => {
       if (notificationsRef.current && !notificationsRef.current.contains(target)) {
         setShowNotifications(false);
       }
+      if (friendsRef.current && !friendsRef.current.contains(target)) {
+        setShowFriendsModal(false);
+      }
     };
     document.addEventListener('click', handleDocumentClick);
     return () => document.removeEventListener('click', handleDocumentClick);
@@ -157,6 +161,7 @@ export const TopNavbar: React.FC = () => {
         setShowSearchResults(false);
         setShowDropdown(false);
         setShowNotifications(false);
+        setShowFriendsModal(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -210,7 +215,8 @@ export const TopNavbar: React.FC = () => {
   };
 
   return (
-    <nav className={`${styles.topNavbar} ${scrolled ? styles.scrolled : ''}`} role="navigation" aria-label="Navegación principal">
+    <>
+      <nav className={`${styles.topNavbar} ${scrolled ? styles.scrolled : ''}`} role="navigation" aria-label="Navegación principal">
       <div className={styles.navLeft}>
         <Link href="/dashboard" className={styles.logo}>ANINEXO</Link>
         <div className={styles.navLinks} role="menubar">
@@ -295,9 +301,21 @@ export const TopNavbar: React.FC = () => {
         
         <div className={styles.iconGroup}>
             <Link href="/dashboard/premium" className={styles.premiumLink}>PREMIUM</Link>
-            <button className={styles.navIconBtn} onClick={() => setShowFriendsModal(true)} title="Ver amigos" aria-label="Ver amigos">
-              <Users size={18} />
-            </button>
+            <div ref={friendsRef} style={{ position: 'relative' }}>
+              <button className={styles.navIconBtn} onClick={() => setShowFriendsModal(!showFriendsModal)} title="Ver amigos" aria-label="Ver amigos">
+                <Users size={18} />
+              </button>
+              
+              {showFriendsModal && user && (
+                 <FriendsModal
+                   userId={user.id}
+                   onClose={() => setShowFriendsModal(false)}
+                   currentUser={user}
+                   isDropdown={true}
+                 />
+              )}
+            </div>
+
             <div className={styles.notificationsMenu} ref={notificationsRef}>
               <button 
                 className={`${styles.navIconBtn} ${unreadCount > 0 ? styles.hasUnread : ''}`}
@@ -382,13 +400,7 @@ export const TopNavbar: React.FC = () => {
               )}
             </div>
 
-            {showFriendsModal && user && (
-               <FriendsModal
-                 userId={user.id}
-                 onClose={() => setShowFriendsModal(false)}
-                 currentUser={user}
-               />
-            )}
+            <button className={styles.navIconBtn} aria-label="Notificaciones">🔔</button>
 
             <div className={styles.userMenu} ref={menuRef}>
              <div 
@@ -454,6 +466,8 @@ export const TopNavbar: React.FC = () => {
          </div>
       </div>
 
+    </nav>
+
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
         <div className={styles.mobileDrawer}>
@@ -471,6 +485,6 @@ export const TopNavbar: React.FC = () => {
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 };
