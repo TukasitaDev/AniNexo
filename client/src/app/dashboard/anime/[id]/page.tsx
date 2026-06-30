@@ -26,6 +26,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [mangaId, setMangaId] = useState<string | null>(null);
   const [checkingManga, setCheckingManga] = useState(true);
+  const [translatedDescription, setTranslatedDescription] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async (force: boolean = false) => {
@@ -41,6 +42,23 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
         }
         setAnime(data);
         setLoading(false);
+
+        // Traducir sinopsis al español al vuelo
+        if (data.description) {
+          try {
+            const rawText = data.description.replace(/<[^>]*>/g, '').trim();
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=${encodeURIComponent(rawText)}`;
+            const tRes = await fetch(url);
+            const tJson = await tRes.json();
+            const translated = (tJson[0] as any[][])
+              .map((segment: any[]) => segment[0])
+              .join('');
+            setTranslatedDescription(translated);
+          } catch (e) {
+            // Si falla la traducción, se muestra el original
+            setTranslatedDescription(null);
+          }
+        }
 
         // Buscar manga correspondiente en MangaDex a través de nuestro proxy
         const titleToSearch = data.title?.english || data.title?.romaji;
@@ -289,7 +307,9 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
              <div key="overview" className="tab-pane animate-fadeInUp animate-delay-100" data-tour="anime-overview">
                <section className="info-block">
                  <h3>Sinopsis</h3>
-                 <div className="description-text">{stripHtml(anime.description)}</div>
+                 <div className="description-text">
+                    {translatedDescription ?? stripHtml(anime.description)}
+                  </div>
                </section>
 
                {anime.relations?.length > 0 && (
@@ -549,7 +569,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          /* MAIN CONTENT */
          .info-block { margin-bottom: 60px; }
          .info-block h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 25px; border-left: 4px solid #00E5FF; padding-left: 15px; }
-         .description-text { color: #aaa; line-height: 1.8; font-size: 1.05rem; }
+         .description-text { color: #aaa; line-height: 1.85; font-size: 1rem; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; max-width: 100%; }
          .description-text :global(br) { margin-bottom: 15px; display: block; content: ""; }
  
          .relations-horizontal { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; scrollbar-width: none; }
