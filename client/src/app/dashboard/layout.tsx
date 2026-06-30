@@ -6,6 +6,7 @@ import { TopNavbar } from '../../components/layout/TopNavbar';
 // import { Sidebar } from '../../components/layout/Sidebar';
 import { NexoFloatingOrb } from '../../components/nexo/NexoFloatingOrb';
 import { NexoTour } from '../../components/ui/NexoTour/NexoTour';
+import { MessengerChatButton } from '../../components/layout/MessengerChatButton';
 import styles from './DashboardLayout.module.css';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
         <NexoFloatingOrb />
+        <MessengerChatButton />
         <NexoTour />
       </div>
     </SocketProvider>
