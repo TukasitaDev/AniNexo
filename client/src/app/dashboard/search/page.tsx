@@ -635,8 +635,6 @@ export default function SearchPage() {
 
         .drawer-scroll-content {
           padding: 25px;
-          max-height: 70vh;
-          overflow-y: auto;
         }
 
         .filter-section { margin-bottom: 2rem; }
