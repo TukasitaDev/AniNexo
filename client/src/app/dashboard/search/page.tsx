@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimeCard } from '../../../components/discovery/AnimeCard';
 import { MangaCard } from '../../../components/discovery/MangaCard';
 import Link from 'next/link';
-import { Compass, Filter, X, RefreshCw, Sparkles, ChevronDown } from 'lucide-react';
+import { Compass, X, Sparkles, ChevronDown } from 'lucide-react';
+import { translateGenre, translateStatus, translateFormat, translateSeason } from '../../../lib/translations';
 
 const GENRES = [
   "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Horror", 
@@ -31,10 +32,13 @@ export default function SearchPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchMode, setSearchMode] = useState<'anime' | 'manga'>('anime');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Estados para custom dropdowns
+  const [dropdownActive, setDropdownActive] = useState<'year' | 'season' | 'status' | 'format' | null>(null);
   
   const observer = useRef<IntersectionObserver | null>(null);
 
-  // Estados temporales del cajón de filtros (solo se aplican al presionar "Ver Resultados")
+  // Estados temporales del cajón de filtros
   const [tempQuery, setTempQuery] = useState(searchParams.get('query') || '');
   const [tempSelectedGenres, setTempSelectedGenres] = useState<string[]>(searchParams.get('genres')?.split(',').filter(Boolean) || []);
   const [tempYear, setTempYear] = useState(searchParams.get('year') || '');
@@ -49,6 +53,19 @@ export default function SearchPage() {
   const [appliedSeason, setAppliedSeason] = useState(searchParams.get('season') || '');
   const [appliedStatus, setAppliedStatus] = useState(searchParams.get('status') || '');
   const [appliedFormat, setAppliedFormat] = useState(searchParams.get('format') || '');
+
+  // Referencias para cerrar dropdowns haciendo clic fuera
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownActive(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const lastAnimeElementRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -143,7 +160,6 @@ export default function SearchPage() {
     }
   };
 
-  // Se ejecuta la búsqueda al cambiar query o modo (pero mapeado a appliedQuery)
   useEffect(() => {
     setAnimes([]);
     setMangas([]);
@@ -152,7 +168,6 @@ export default function SearchPage() {
     fetchResults(1, true);
   }, [appliedQuery, searchMode]);
 
-  // Se ejecuta la búsqueda cuando los filtros aplicados cambian
   useEffect(() => {
     setAnimes([]);
     setMangas([]);
@@ -197,7 +212,6 @@ export default function SearchPage() {
         <button 
           className={`explore-toggle-btn ${showFilters ? 'active' : ''}`}
           onClick={() => {
-            // Sincronizar temporales con los aplicados actuales al abrir
             if (!showFilters) {
               setTempQuery(appliedQuery);
               setTempSelectedGenres(appliedGenres);
@@ -219,7 +233,7 @@ export default function SearchPage() {
       {/* Dropdown Filters Drawer Container */}
       <div className={`filters-drawer-overlay ${showFilters ? 'show' : ''}`} onClick={() => setShowFilters(false)} />
       
-      <div className={`filters-drawer ${showFilters ? 'open' : ''}`}>
+      <div className={`filters-drawer ${showFilters ? 'open' : ''}`} ref={dropdownRef}>
         <div className="drawer-header">
           <div className="drawer-title-area">
             <Sparkles size={18} className="title-sparkle" />
@@ -254,43 +268,86 @@ export default function SearchPage() {
                       className={tempSelectedGenres.includes(g) ? 'active' : ''}
                       onClick={() => toggleGenre(g)}
                     >
-                      {g}
+                      {translateGenre(g)}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Custom Animated Selects */}
               <div className="filter-row">
                 <div className="filter-item">
                   <h4>Año</h4>
-                  <select value={tempYear} onChange={(e) => setTempYear(e.target.value)}>
-                    <option value="">Todos</option>
-                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                  <div className={`custom-select-container ${dropdownActive === 'year' ? 'active' : ''}`}>
+                    <div className="custom-select-trigger" onClick={() => setDropdownActive(dropdownActive === 'year' ? null : 'year')}>
+                      <span>{tempYear || 'Todos'}</span>
+                      <ChevronDown size={14} className="select-arrow" />
+                    </div>
+                    <div className="custom-select-options">
+                      <div className={`custom-option ${!tempYear ? 'selected' : ''}`} onClick={() => { setTempYear(''); setDropdownActive(null); }}>Todos</div>
+                      {YEARS.map(y => (
+                        <div key={y} className={`custom-option ${tempYear === y.toString() ? 'selected' : ''}`} onClick={() => { setTempYear(y.toString()); setDropdownActive(null); }}>
+                          {y}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
                 <div className="filter-item">
                   <h4>Temporada</h4>
-                  <select value={tempSeason} onChange={(e) => setTempSeason(e.target.value)}>
-                    <option value="">Todas</option>
-                    {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <div className={`custom-select-container ${dropdownActive === 'season' ? 'active' : ''}`}>
+                    <div className="custom-select-trigger" onClick={() => setDropdownActive(dropdownActive === 'season' ? null : 'season')}>
+                      <span>{translateSeason(tempSeason) || 'Todas'}</span>
+                      <ChevronDown size={14} className="select-arrow" />
+                    </div>
+                    <div className="custom-select-options">
+                      <div className={`custom-option ${!tempSeason ? 'selected' : ''}`} onClick={() => { setTempSeason(''); setDropdownActive(null); }}>Todas</div>
+                      {SEASONS.map(s => (
+                        <div key={s} className={`custom-option ${tempSeason === s ? 'selected' : ''}`} onClick={() => { setTempSeason(s); setDropdownActive(null); }}>
+                          {translateSeason(s)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="filter-row">
                 <div className="filter-item">
                   <h4>Estado</h4>
-                  <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
-                    <option value="">Todos</option>
-                    {STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                  </select>
+                  <div className={`custom-select-container ${dropdownActive === 'status' ? 'active' : ''}`}>
+                    <div className="custom-select-trigger" onClick={() => setDropdownActive(dropdownActive === 'status' ? null : 'status')}>
+                      <span>{translateStatus(tempStatus) || 'Todos'}</span>
+                      <ChevronDown size={14} className="select-arrow" />
+                    </div>
+                    <div className="custom-select-options">
+                      <div className={`custom-option ${!tempStatus ? 'selected' : ''}`} onClick={() => { setTempStatus(''); setDropdownActive(null); }}>Todos</div>
+                      {STATUS.map(s => (
+                        <div key={s} className={`custom-option ${tempStatus === s ? 'selected' : ''}`} onClick={() => { setTempStatus(s); setDropdownActive(null); }}>
+                          {translateStatus(s)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
                 <div className="filter-item">
                   <h4>Formato</h4>
-                  <select value={tempFormat} onChange={(e) => setTempFormat(e.target.value)}>
-                    <option value="">Todos</option>
-                    {FORMATS.map(f => <option key={f} value={f}>{f.replace('_', ' ')}</option>)}
-                  </select>
+                  <div className={`custom-select-container ${dropdownActive === 'format' ? 'active' : ''}`}>
+                    <div className="custom-select-trigger" onClick={() => setDropdownActive(dropdownActive === 'format' ? null : 'format')}>
+                      <span>{translateFormat(tempFormat) || 'Todos'}</span>
+                      <ChevronDown size={14} className="select-arrow" />
+                    </div>
+                    <div className="custom-select-options">
+                      <div className={`custom-option ${!tempFormat ? 'selected' : ''}`} onClick={() => { setTempFormat(''); setDropdownActive(null); }}>Todos</div>
+                      {FORMATS.map(f => (
+                        <div key={f} className={`custom-option ${tempFormat === f ? 'selected' : ''}`} onClick={() => { setTempFormat(f); setDropdownActive(null); }}>
+                          {translateFormat(f)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </>
@@ -440,7 +497,7 @@ export default function SearchPage() {
       <style jsx>{`
         .search-page { display: flex; flex-direction: column; min-height: 100vh; background: #050505; padding-top: 75px; position: relative; }
         
-        /* Floating Dropdown Toggle Bar */
+        /* Floating Toggle Button for Drawer */
         .explore-trigger-bar {
           width: 100%;
           display: flex;
@@ -621,19 +678,99 @@ export default function SearchPage() {
         .genre-cloud button.active { background: #00E5FF; border-color: #00E5FF; color: #000; font-weight: 800; }
         
         .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
-        .filter-item select { 
-          width: 100%; 
-          background: rgba(255,255,255,0.02); 
-          border: 1px solid rgba(255,255,255,0.05); 
-          padding: 12px; 
-          border-radius: 8px; 
-          color: #ccc; 
-          outline: none;
-          cursor: pointer;
-          transition: border-color 0.2s;
+        
+        /* Custom Dropdowns */
+        .custom-select-container {
+          position: relative;
+          width: 100%;
         }
-        .filter-item select:focus {
+
+        .custom-select-trigger {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.05);
+          padding: 12px 16px;
+          border-radius: 8px;
+          color: #ccc;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.25s ease;
+        }
+
+        .custom-select-trigger:hover, .custom-select-container.active .custom-select-trigger {
           border-color: #00E5FF;
+          box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+        }
+
+        .select-arrow {
+          color: #666;
+          transition: transform 0.25s ease;
+        }
+
+        .custom-select-container.active .select-arrow {
+          transform: rotate(180deg);
+          color: #00E5FF;
+        }
+
+        .custom-select-options {
+          position: absolute;
+          top: calc(100% + 5px);
+          left: 0;
+          right: 0;
+          background: #0d0d12;
+          border: 1px solid rgba(0, 229, 255, 0.2);
+          border-radius: 8px;
+          max-height: 220px;
+          overflow-y: auto;
+          z-index: 120;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(-10px);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-select-container.active .custom-select-options {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+
+        .custom-option {
+          padding: 10px 16px;
+          color: #aaa;
+          cursor: pointer;
+          font-size: 0.88rem;
+          transition: all 0.2s;
+        }
+
+        .custom-option:hover {
+          background: rgba(0, 229, 255, 0.08);
+          color: #fff;
+        }
+
+        .custom-option.selected {
+          background: rgba(0, 229, 255, 0.15);
+          color: #00E5FF;
+          font-weight: bold;
+        }
+
+        /* Scrollbar styles for custom select */
+        .custom-select-options::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-select-options::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-select-options::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-select-options::-webkit-scrollbar-thumb:hover {
+          background: #00E5FF;
         }
 
         .drawer-actions {
