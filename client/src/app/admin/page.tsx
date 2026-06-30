@@ -1441,36 +1441,47 @@ export default function AdminDashboard() {
       case 'manual':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', color: '#ccc', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <Card style={{ padding: '30px', border: '1px solid rgba(0, 229, 255, 0.15)' }}>
-              <h2 style={{ marginTop: 0, color: '#00E5FF', fontWeight: 800 }}>📖 Guía del Administrador AniNexo</h2>
-              <p style={{ color: '#888', marginBottom: '25px' }}>Este manual proporciona un resumen de las herramientas administrativas y los flujos disponibles en la consola de AniNexo Enterprise.</p>
+            <Card style={{ padding: '30px', border: '1px solid rgba(0, 229, 255, 0.2)', background: 'rgba(10, 10, 15, 0.6)' }}>
+              <h2 style={{ marginTop: 0, color: '#00E5FF', fontWeight: 900, textShadow: '0 0 15px rgba(0, 229, 255, 0.2)' }}>🛡️ Consola Enterprise — Manual del Administrador</h2>
+              <p style={{ color: '#888', marginBottom: '30px' }}>Este documento define el alcance y las metodologías operativas autorizadas para gestionar la infraestructura de AniNexo.</p>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '35px' }}>
                 <section>
-                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>👤 Gestión de Usuarios</h3>
-                  <p>Permite administrar el estado y privilegios de las cuentas de usuario registradas:</p>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0', fontWeight: 700 }}>👤 1. Control de Cuentas y Privilegios</h3>
+                  <p>Manejo de estados de usuarios en el módulo <strong>"Usuarios"</strong>:</p>
                   <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
-                    <li><strong>Verificar Cuenta:</strong> Otorga o revoca el estado verificado (marca de verificación verde).</li>
-                    <li><strong>Otorgar Premium:</strong> Asigna o revoca suscripción Premium de forma manual.</li>
-                    <li><strong>Cambiar Rol:</strong> Eleva o reduce el rol a administradores para auditoría y soporte.</li>
+                    <li><strong>Verificación (Badge):</strong> Se otorga a creadores de contenido, figuras oficiales o cuentas validadas manualmente. Presiona "Verificar" para activar la insignia verde.</li>
+                    <li><strong>Acceso Premium:</strong> Permite simular o regalar membresías Premium (acceso ilimitado a IA, color personalizado y telemetría de visualización) mediante el botón "Hacer Premium".</li>
+                    <li><strong>Roles del Sistema:</strong> Los administradores pueden cambiar roles entre <em>USER</em>, <em>ADMIN</em> y <em>SUPERADMIN</em>. (Precaución: El rol ADMIN tiene acceso a telemetría de red).</li>
                   </ul>
                 </section>
 
                 <section>
-                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>🛡️ Moderación e Infracciones</h3>
-                  <p>Manejo de denuncias por publicaciones inapropiadas o cuentas problemáticas:</p>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0', fontWeight: 700 }}>🛡️ 2. Protocolo de Moderación e Infracciones</h3>
+                  <p>Mantenimiento de la sana convivencia en la comunidad mediante la pestaña <strong>"Moderación"</strong>:</p>
                   <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
-                    <li><strong>Reportes Pendientes:</strong> Permite resolver denuncias justificadas o ignorarlas.</li>
-                    <li><strong>Sanciones directas:</strong> Enviar advertencias escritas, silenciar (Mute) temporalmente o Banear cuentas permanentemente.</li>
+                    <li><strong>Auditoría de Reportes:</strong> Lista denuncias emitidas por usuarios sobre posts o comentarios. Puedes ver los detalles, justificar la denuncia aplicando sanciones, o resolver el reporte sin sanción ("Ignorar").</li>
+                    <li><strong>Advertencias (Warning):</strong> Primera escala disciplinaria. Registra una advertencia interna con una justificación escrita enviada al usuario.</li>
+                    <li><strong>Silencios (Mute):</strong> Restringe la capacidad de interactuar en chats o foros durante las horas asignadas (ej. 24h, 48h) manteniendo la cuenta en modo lectura.</li>
+                    <li><strong>Expulsiones (Ban):</strong> Última instancia disciplinaria. Cancela el acceso al portal por días o indefinidamente.</li>
                   </ul>
                 </section>
 
                 <section>
-                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>⚙️ Configuración del Sistema</h3>
-                  <p>Controles de estado de red a nivel de infraestructura:</p>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0', fontWeight: 700 }}>⚙️ 3. Configuración y feature flags</h3>
+                  <p>Operación de la infraestructura en caliente en la pestaña <strong>"Sistema"</strong>:</p>
                   <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
-                    <li><strong>Modo Mantenimiento:</strong> Desactiva la plataforma globalmente mostrando pantalla de mantenimiento a usuarios.</li>
-                    <li><strong>Feature Flags:</strong> Apagar o encender características específicas (ej. chat IA, búsqueda global, registro público) en caliente.</li>
+                    <li><strong>Mantenimiento de Emergencia:</strong> Al pulsar "Activar Modo Mantenimiento", todas las solicitudes de usuarios a la API serán rechazadas temporalmente, redirigiendo el portal a una página estática para evitar corrupción de base de datos durante migraciones.</li>
+                    <li><strong>Feature Flags (Interruptores):</strong> Permite apagar servicios que sufran picos de carga. Puedes desactivar la IA de Nexo, el lector de mangas o los posts de forma instantánea.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0', fontWeight: 700 }}>📊 4. Telemetría Pro y Auditoría</h3>
+                  <p>Supervisión en tiempo real bajo las secciones de <strong>"Telemetría Pro"</strong> y <strong>"Auditoría"</strong>:</p>
+                  <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                    <li><strong>Auditoría General:</strong> Historial inmutable de acciones críticas (ej. resoluciones de reportes, sanciones a usuarios, cambios en feature flags) con marca de tiempo precisa y dirección IP para rastreo de seguridad.</li>
+                    <li><strong>Telemetría de Eventos:</strong> Gráficos del uso de la CPU del servidor, volumen de conexiones Socket.io activas y tiempos de respuesta de base de datos.</li>
                   </ul>
                 </section>
               </div>
