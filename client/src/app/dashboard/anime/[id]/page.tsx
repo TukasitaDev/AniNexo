@@ -521,62 +521,104 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
                         {/* SCORE CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Puntuación Media</span>
-                          <div className="m-values">
-                            <span className={`m-val ${anime.averageScore >= (comparingAnime.averageScore || 0) ? 'winner-cyan' : ''}`}>
-                              {anime.averageScore}%
-                            </span>
-                            <span className={`m-val ${comparingAnime.averageScore >= anime.averageScore ? 'winner-cyan' : ''}`}>
-                              {comparingAnime.averageScore || '—'}%
-                            </span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className={`m-val ${anime.averageScore >= (comparingAnime.averageScore || 0) ? 'winner-cyan' : ''}`}>
+                                {anime.averageScore}%
+                              </span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className={`m-val ${comparingAnime.averageScore >= anime.averageScore ? 'winner-cyan' : ''}`}>
+                                {comparingAnime.averageScore || '—'}%
+                              </span>
+                            </div>
                           </div>
                         </div>
 
                         {/* POPULARITY CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Popularidad (Listas)</span>
-                          <div className="m-values">
-                            <span className={`m-val ${anime.popularity >= (comparingAnime.popularity || 0) ? 'winner-cyan' : ''}`}>
-                              🔥 {anime.popularity.toLocaleString()}
-                            </span>
-                            <span className={`m-val ${comparingAnime.popularity >= anime.popularity ? 'winner-cyan' : ''}`}>
-                              🔥 {(comparingAnime.popularity || 0).toLocaleString()}
-                            </span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className={`m-val ${anime.popularity >= (comparingAnime.popularity || 0) ? 'winner-cyan' : ''}`}>
+                                🔥 {anime.popularity.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className={`m-val ${comparingAnime.popularity >= anime.popularity ? 'winner-cyan' : ''}`}>
+                                🔥 {(comparingAnime.popularity || 0).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
                         {/* EPISODES CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Episodios Totales</span>
-                          <div className="m-values">
-                            <span className="m-val">{anime.episodes || '—'}</span>
-                            <span className="m-val">{comparingAnime.episodes || '—'}</span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className="m-val">{anime.episodes || '—'}</span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className="m-val">{comparingAnime.episodes || '—'}</span>
+                            </div>
                           </div>
                         </div>
 
                         {/* DURATION CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Duración promedio</span>
-                          <div className="m-values">
-                            <span className="m-val">{anime.duration ? `${anime.duration} min` : '—'}</span>
-                            <span className="m-val">{comparingAnime.duration ? `${comparingAnime.duration} min` : '—'}</span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className="m-val">{anime.duration ? `${anime.duration} min` : '—'}</span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className="m-val">{comparingAnime.duration ? `${comparingAnime.duration} min` : '—'}</span>
+                            </div>
                           </div>
                         </div>
 
                         {/* STATE CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Estado actual</span>
-                          <div className="m-values text-side">
-                            <span className="m-val-text">{translateStatus(anime.status)}</span>
-                            <span className="m-val-text">{translateStatus(comparingAnime.status)}</span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className="m-val-text">{translateStatus(anime.status)}</span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className="m-val-text">{translateStatus(comparingAnime.status)}</span>
+                            </div>
                           </div>
                         </div>
 
                         {/* SOURCE CARD */}
                         <div className="metric-compare-card">
                           <span className="m-title">Origen</span>
-                          <div className="m-values text-side">
-                            <span className="m-val-text">{anime.source || 'Original'}</span>
-                            <span className="m-val-text">{comparingAnime.source || 'Original'}</span>
+                          <div className="m-cols-wrapper">
+                            <div className="m-col left-align">
+                              <span className="m-col-label">Este Anime</span>
+                              <span className="m-val-text">{anime.source || 'Original'}</span>
+                            </div>
+                            <div className="m-col-divider" />
+                            <div className="m-col right-align">
+                              <span className="m-col-label">Comparado</span>
+                              <span className="m-val-text">{comparingAnime.source || 'Original'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -794,12 +836,16 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .btn-clear-compare:hover { background: #ef4444; color: #fff; }
 
          .comparison-metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-         .metric-compare-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-         .metric-compare-card .m-title { font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; }
-         .metric-compare-card .m-values { display: flex; justify-content: space-between; align-items: center; }
-         .metric-compare-card .m-val { font-size: 1.4rem; font-weight: 900; color: #ddd; }
+         .metric-compare-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+         .metric-compare-card .m-title { font-size: 0.72rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+         .m-cols-wrapper { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+         .m-col { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+         .m-col.left-align { align-items: flex-start; text-align: left; }
+         .m-col.right-align { align-items: flex-end; text-align: right; }
+         .m-col-label { font-size: 0.65rem; color: #444; font-weight: 700; text-transform: uppercase; }
+         .m-col-divider { width: 1px; height: 35px; background: rgba(255,255,255,0.08); }
+         .metric-compare-card .m-val { font-size: 1.25rem; font-weight: 900; color: #ddd; }
          .metric-compare-card .m-val.winner-cyan { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
-         .metric-compare-card .m-values.text-side { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
          .metric-compare-card .m-val-text { font-size: 0.95rem; font-weight: 700; color: #bbb; }
 
          /* DUAL SCORES CHART */
