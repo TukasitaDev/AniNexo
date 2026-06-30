@@ -29,7 +29,7 @@ import {
   Database
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'users' | 'anime' | 'moderation' | 'finances' | 'system' | 'nexo' | 'telemetry' | 'logs' | 'emails';
+type Tab = 'dashboard' | 'users' | 'anime' | 'moderation' | 'finances' | 'system' | 'nexo' | 'telemetry' | 'logs' | 'emails' | 'manual';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -1438,6 +1438,45 @@ export default function AdminDashboard() {
             )}
           </div>
         );
+      case 'manual':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', color: '#ccc', fontSize: '0.95rem', lineHeight: '1.6' }}>
+            <Card style={{ padding: '30px', border: '1px solid rgba(0, 229, 255, 0.15)' }}>
+              <h2 style={{ marginTop: 0, color: '#00E5FF', fontWeight: 800 }}>📖 Guía del Administrador AniNexo</h2>
+              <p style={{ color: '#888', marginBottom: '25px' }}>Este manual proporciona un resumen de las herramientas administrativas y los flujos disponibles en la consola de AniNexo Enterprise.</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                <section>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>👤 Gestión de Usuarios</h3>
+                  <p>Permite administrar el estado y privilegios de las cuentas de usuario registradas:</p>
+                  <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                    <li><strong>Verificar Cuenta:</strong> Otorga o revoca el estado verificado (marca de verificación verde).</li>
+                    <li><strong>Otorgar Premium:</strong> Asigna o revoca suscripción Premium de forma manual.</li>
+                    <li><strong>Cambiar Rol:</strong> Eleva o reduce el rol a administradores para auditoría y soporte.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>🛡️ Moderación e Infracciones</h3>
+                  <p>Manejo de denuncias por publicaciones inapropiadas o cuentas problemáticas:</p>
+                  <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                    <li><strong>Reportes Pendientes:</strong> Permite resolver denuncias justificadas o ignorarlas.</li>
+                    <li><strong>Sanciones directas:</strong> Enviar advertencias escritas, silenciar (Mute) temporalmente o Banear cuentas permanentemente.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #222', paddingBottom: '8px', margin: '0 0 12px 0' }}>⚙️ Configuración del Sistema</h3>
+                  <p>Controles de estado de red a nivel de infraestructura:</p>
+                  <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                    <li><strong>Modo Mantenimiento:</strong> Desactiva la plataforma globalmente mostrando pantalla de mantenimiento a usuarios.</li>
+                    <li><strong>Feature Flags:</strong> Apagar o encender características específicas (ej. chat IA, búsqueda global, registro público) en caliente.</li>
+                  </ul>
+                </section>
+              </div>
+            </Card>
+          </div>
+        );
     }
   };
 
@@ -1465,6 +1504,7 @@ export default function AdminDashboard() {
           <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<FileText size={18} />} label="Auditoría" />
           <TabButton active={activeTab === 'emails'} onClick={() => setActiveTab('emails')} icon={<Mail size={18} />} label="Correos" />
           <TabButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon={<Settings size={18} />} label="Sistema" />
+          <TabButton active={activeTab === 'manual'} onClick={() => setActiveTab('manual')} icon={<FileText size={18} />} label="Manual Admin" />
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: '2rem', borderTop: '1px solid #1a1a1a' }}>
