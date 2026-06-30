@@ -17,6 +17,7 @@ export const TopNavbar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ animes: any[], users: any[] }>({ animes: [], users: [] });
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -173,9 +174,11 @@ export const TopNavbar: React.FC = () => {
       if (searchQuery.length < 2) {
         setSearchResults({ animes: [], users: [] });
         setShowSearchResults(false);
+        setIsSearching(false);
         return;
       }
 
+      setIsSearching(true);
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/search/global?q=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
@@ -185,6 +188,8 @@ export const TopNavbar: React.FC = () => {
         }
       } catch (err) {
         console.error("Search error", err);
+      } finally {
+        setIsSearching(false);
       }
     };
 
@@ -238,7 +243,7 @@ export const TopNavbar: React.FC = () => {
       </div>
 
       <div className={styles.navRight}>
-        <div className={styles.searchBox} ref={searchRef} data-tour="search-box">
+        <div className={`${styles.searchBox} ${isSearching ? styles.searchBoxLoading : ''}`} ref={searchRef} data-tour="search-box">
            <input 
              type="text" 
              placeholder="Buscar anime o personas..." 
@@ -249,7 +254,11 @@ export const TopNavbar: React.FC = () => {
              className={styles.searchInput}
              aria-label="Buscar anime o personas"
            />
-           <span className={styles.searchIcon} aria-hidden="true">🔍</span>
+           {isSearching ? (
+             <span className={styles.searchSpinner} aria-hidden="true" />
+           ) : (
+             <span className={styles.searchIcon} aria-hidden="true">🔍</span>
+           )}
 
            {showSearchResults && (searchQuery.length >= 2) && (
              <ViewTransition>

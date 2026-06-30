@@ -112,6 +112,34 @@
   pointer-events: none;
 }
 
+@keyframes spinSearch {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(0, 229, 255, 0.75), 0 0 5px rgba(0, 229, 255, 0.4) inset; }
+}
+
+.searchSpinner {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 229, 255, 0.25);
+  border-top-color: #00E5FF;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: spinSearch 0.7s linear infinite;
+}
+
+.searchBoxLoading .searchInput {
+  border-color: rgba(0, 229, 255, 0.6);
+  animation: pulseGlow 1.1s ease-in-out infinite;
+}
+
+
+
 .searchResults {
   position: absolute;
   top: 100%;
