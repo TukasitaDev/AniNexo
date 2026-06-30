@@ -498,35 +498,53 @@ export default function SearchPage() {
         .search-page { display: flex; flex-direction: column; min-height: 100vh; background: #050505; padding-top: 75px; position: relative; }
         
         /* Floating Toggle Button for Drawer */
+        @keyframes floatBtn {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+
         .explore-trigger-bar {
+          position: fixed;
+          top: 80px;
+          left: 0;
           width: 100%;
           display: flex;
           justify-content: center;
-          padding: 1.5rem 5% 0.5rem;
-          z-index: 90;
+          padding: 0.75rem 5%;
+          z-index: 200;
+          pointer-events: none;
         }
 
         .explore-toggle-btn {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: rgba(10, 10, 12, 0.85);
-          border: 1px solid rgba(0, 229, 255, 0.2);
+          background: rgba(10, 10, 12, 0.88);
+          border: 1px solid rgba(0, 229, 255, 0.35);
           padding: 12px 24px;
           border-radius: 30px;
           color: #fff;
           font-weight: 800;
           font-size: 0.95rem;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-          backdrop-filter: blur(15px);
+          pointer-events: all;
+          transition: border-color 0.3s ease, box-shadow 0.3s ease;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 12px rgba(0,229,255,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          animation: floatBtn 3.2s ease-in-out infinite;
         }
 
-        .explore-toggle-btn:hover, .explore-toggle-btn.active {
+        .explore-toggle-btn:hover {
           border-color: #00E5FF;
-          box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
-          transform: translateY(-2px);
+          box-shadow: 0 8px 36px rgba(0,0,0,0.5), 0 0 22px rgba(0, 229, 255, 0.55);
+          animation-play-state: paused;
+        }
+
+        .explore-toggle-btn.active {
+          border-color: #00E5FF;
+          box-shadow: 0 0 22px rgba(0, 229, 255, 0.5);
+          animation-play-state: paused;
         }
 
         .icon-explore {
@@ -555,7 +573,7 @@ export default function SearchPage() {
 
         /* Dropdown Drawer */
         .filters-drawer {
-          position: absolute;
+          position: fixed;
           top: 140px;
           left: 50%;
           transform: translateX(-50%) translateY(-20px);
