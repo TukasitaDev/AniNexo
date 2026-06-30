@@ -156,7 +156,7 @@ export const MessengerChatButton: React.FC = () => {
 
       {/* ===== Friends panel — always shows when isOpen ===== */}
       {isOpen && (
-        <div className="msgr-panel">
+        <div className="msgr-panel" data-tour="messenger-panel">
           {/* Panel header */}
           <div className="msgr-panel-header">
             <div className="msgr-panel-header-left">
@@ -199,6 +199,7 @@ export const MessengerChatButton: React.FC = () => {
 
       {/* ===== Floating Action Button ===== */}
       <button
+        data-tour="messenger-fab"
         className={`msgr-fab ${isPulsing ? 'msgr-fab-pulse' : ''} ${isOpen ? 'msgr-fab-active' : ''}`}
         onClick={() => {
           setIsOpen(o => !o);

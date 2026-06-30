@@ -274,6 +274,69 @@ export const tourSteps: TourStep[] = [
   },
 
   // ─────────────────────────────────────────────────
+  // SECCIÓN 5 · Chat directo estilo Messenger
+  // ─────────────────────────────────────────────────
+  {
+    target: 'body',
+    placement: 'center',
+    title: '¡Mensajes directos al estilo Messenger!',
+    content:
+      '¡Una de las novedades más emocionantes! AniNexo ahora tiene un sistema de mensajes directos en tiempo real. Te lo muestro ahora mismo.',
+    emotion: 'excited',
+    disableBeacon: true,
+    navigateTo: '/dashboard',
+  },
+  {
+    target: '[data-tour="messenger-fab"]',
+    placement: 'left',
+    title: 'Tu botón de chats',
+    content:
+      'Este botón flotante con el logo de Nexo es tu puerta de entrada al chat directo. Haz clic en él en cualquier momento para ver tus conversaciones con amigos sin salir de la página en la que estás.',
+    emotion: 'happy',
+    disableBeacon: true,
+    spotlightPadding: 10,
+    disableScroll: true,
+  },
+  {
+    target: '[data-tour="community-right-sidebar"]',
+    placement: 'left',
+    title: 'Estado en tiempo real de tus amigos',
+    content:
+      'En el panel de amigos puedes ver quién está conectado en este instante. El indicador de color te dice todo: 🟢 En línea, 🟡 Ausente, 🔴 Ocupado o ⚫ Desconectado. Todo en tiempo real gracias a WebSockets.',
+    emotion: 'explaining',
+    disableBeacon: true,
+    spotlightPadding: 8,
+    disableScroll: true,
+    navigateTo: '/dashboard/community',
+  },
+
+  // ─────────────────────────────────────────────────
+  // SECCIÓN 6 · Estado de presencia en el perfil
+  // ─────────────────────────────────────────────────
+  {
+    target: 'body',
+    placement: 'center',
+    title: 'Controla tu estado de presencia',
+    content:
+      'Puedes cambiar cómo te ven los demás desde tu propio perfil. ¡Te llevo allí para que veas el selector de estado!',
+    emotion: 'wink',
+    disableBeacon: true,
+    navigateTo: 'PROFILE',
+  },
+  {
+    target: '[data-tour="profile-status"]',
+    placement: 'bottom',
+    title: 'Selector de estado ⚙️',
+    content:
+      'Con el botón ⚙️ junto a tu nombre puedes cambiar tu estado entre: 🟢 En línea, 🟡 Ausente y 🔴 Ocupado. Tus amigos lo verán al instante en sus listas de chat y en tu perfil.',
+    emotion: 'smug',
+    disableBeacon: true,
+    spotlightPadding: 10,
+    scrollOffset: 160,
+    disableScroll: true,
+  },
+
+  // ─────────────────────────────────────────────────
   // CIERRE
   // ─────────────────────────────────────────────────
   {

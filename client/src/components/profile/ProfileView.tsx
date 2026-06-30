@@ -449,7 +449,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
                   </span>
 
                   {isOwnProfile && (
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <div style={{ position: 'relative', display: 'inline-block' }} data-tour="profile-status">
                       <button 
                         onClick={() => setShowStatusSelector(!showStatusSelector)}
                         className={styles.statusSelectBtn}
