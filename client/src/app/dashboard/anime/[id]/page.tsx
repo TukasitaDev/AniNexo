@@ -561,8 +561,8 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .rel-label { font-size: 0.65rem; font-weight: 900; color: #00E5FF; text-transform: uppercase; }
          .rel-title-p { font-size: 0.85rem; font-weight: 700; color: #fff; margin: 4px 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
  
-         .trailer-embed-container { aspect-ratio: 16/9; width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid rgba(0, 229, 255, 0.2); box-shadow: 0 0 50px rgba(0, 229, 255, 0.05); }
-         .trailer-embed-container iframe { width: 100%; height: 100%; }
+         .trailer-embed-container { aspect-ratio: 16/9; width: 100%; max-width: 640px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0, 229, 255, 0.2); box-shadow: 0 0 30px rgba(0, 229, 255, 0.08); }
+         .trailer-embed-container iframe { width: 100%; height: 100%; display: block; }
  
          .recommendations-grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
          .rec-box { text-decoration: none; transition: 0.3s; }
