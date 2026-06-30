@@ -719,8 +719,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }
         .cw-sticker { font-size: 2.2rem; line-height: 1; display: block; }
         .cw-bubble-img {
-          max-width: 100%;
-          max-height: 220px;
+          max-width: 150px;
+          max-height: 150px;
           border-radius: 12px; 
           object-fit: contain;
           cursor: pointer; 

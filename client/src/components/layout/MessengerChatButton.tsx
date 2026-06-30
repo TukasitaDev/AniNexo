@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FriendsModal } from '../profile/FriendsModal';
 import { ChatWindow } from '../profile/ChatWindow';
+import { useGlobalSocket } from '../auth/SocketProvider';
 
 export const MessengerChatButton: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const { socket, isConnected } = useGlobalSocket();
 
   // Chat state — lifted from FriendsModal
   const [activeChatFriend, setActiveChatFriend] = useState<any>(null);
@@ -35,17 +38,25 @@ export const MessengerChatButton: React.FC = () => {
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Click outside to close everything
+  // Listen to new messages in real-time
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as HTMLElement)) {
-        setIsOpen(false);
-        setActiveChatFriend(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+    if (socket && isConnected) {
+      const handleNewMessage = (msg: any) => {
+        if (msg.conversationId === conversationId) {
+          setChatMessages(prev => {
+            // Prevent duplicate renderings
+            if (prev.some(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+        }
+      };
+
+      socket.on('new_message', handleNewMessage);
+      return () => {
+        socket.off('new_message', handleNewMessage);
+      };
+    }
+  }, [socket, isConnected, conversationId]);
 
   const handleStartChat = (friend: any, convId: string, messages: any[]) => {
     setActiveChatFriend(friend);
@@ -61,41 +72,64 @@ export const MessengerChatButton: React.FC = () => {
     setChatInput('');
   };
 
+  // Clean click outside event
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as HTMLElement)) {
+        setIsOpen(false);
+        setActiveChatFriend(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const handleSendMessage = async (content: string, type: string = 'text') => {
     if (!content.trim() || !conversationId || !user?.id) return;
-    setIsSending(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/messaging/send`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ conversationId, senderId: user.id, content: content.trim() }),
-        }
-      );
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setChatMessages(prev => [
-          ...prev,
+    if (!socket || !isConnected) {
+      console.error('Socket no conectado, reintentando por HTTP...');
+      // Fallback a HTTP si no hay socket activo
+      setIsSending(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/messaging/send`,
           {
-            id: data.data?.id ?? Date.now(),
-            content,
-            type,
-            senderId: user.id,
-            createdAt: data.data?.createdAt ?? new Date().toISOString(),
-            sender: { username: user.username, avatarUrl: user.avatarUrl },
-          },
-        ]);
-        setChatInput('');
-      } else {
-        console.error('Error enviando mensaje:', data);
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ conversationId, senderId: user.id, content: content.trim() }),
+          }
+        );
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              id: data.data?.id ?? Date.now(),
+              content,
+              type,
+              senderId: user.id,
+              createdAt: data.data?.createdAt ?? new Date().toISOString(),
+              sender: { username: user.username, avatarUrl: user.avatarUrl },
+            },
+          ]);
+          setChatInput('');
+        }
+      } catch (err) {
+        console.error('Error de red en fallback HTTP:', err);
+      } finally {
+        setIsSending(false);
       }
-    } catch (err) {
-      console.error('Error de red al enviar mensaje:', err);
-    } finally {
-      setIsSending(false);
+      return;
     }
+
+    // Envío súper rápido y confiable por WebSockets
+    socket.emit('send_message', {
+      conversationId,
+      senderId: user.id,
+      content: content.trim()
+    });
+    setChatInput('');
   };
 
   if (!user) return null;

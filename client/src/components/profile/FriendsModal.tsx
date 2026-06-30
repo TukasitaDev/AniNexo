@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { MessageCircle, Edit2, UserMinus } from 'lucide-react';
+import { useChatStore } from '../../store/useChatStore';
 
 interface FriendsModalProps {
   userId: string;
@@ -19,6 +20,8 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
   isDropdown = false,
   onStartChat,
 }) => {
+  const userStatuses = useChatStore(s => s.userStatuses);
+  
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingFriend, setEditingFriend] = useState<string | null>(null);
@@ -155,7 +158,18 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
                     alt={friend.username}
                     className="friend-avatar"
                   />
-                  <span className="friend-online-dot" />
+                  {/* Real-time status dot indicator */}
+                  <span 
+                    className="friend-online-dot" 
+                    style={{
+                      backgroundColor: {
+                        online: '#31a24c',
+                        away: '#f59e0b',
+                        busy: '#ef4444',
+                        offline: '#6b7280'
+                      }[userStatuses[friend.id] || 'offline']
+                    }}
+                  />
                 </div>
 
                 <div className="friend-info">
@@ -334,9 +348,9 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
             position: absolute;
             bottom: 1px; right: 1px;
             width: 9px; height: 9px;
-            background: #31a24c;
             border-radius: 50%;
             border: 2px solid rgba(8,8,14,0.9);
+            transition: background-color 0.22s, box-shadow 0.22s;
           }
 
           .friend-info {
