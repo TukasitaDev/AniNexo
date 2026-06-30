@@ -206,9 +206,7 @@ export const TopNavbar: React.FC = () => {
   const navLinks = [
     { name: 'Inicio', href: '/dashboard' },
     { name: 'Búsqueda', href: '/dashboard/search' },
-    { name: 'Ver Anime', href: '/dashboard/watch' },
     { name: 'Comunidad', href: '/dashboard/community' },
-    { name: 'IA Nexo', href: '/dashboard/nexo' },
     { name: 'Premium', href: '/dashboard/premium' },
   ];
 
@@ -409,7 +407,7 @@ export const TopNavbar: React.FC = () => {
               )}
             </div>
 
-            <button className={styles.navIconBtn} aria-label="Notificaciones">🔔</button>
+
 
             <div className={styles.userMenu} ref={menuRef}>
              <div 
