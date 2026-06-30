@@ -63,6 +63,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [audioSec,    setAudioSec]    = useState(0);
   const [imagePreview, setImagePreview] = useState<string|null>(null);
   const [messagesSeenMap, setMessagesSeenMap] = useState<Record<string, boolean>>({});
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   // Presence status mapping
   const activeStatus = userStatuses[profile?.id] || 'offline';
@@ -242,25 +243,56 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const myAvatar = currentUser?.avatarUrl
     || `https://ui-avatars.com/api/?name=${currentUser?.username}&background=7c3aed&color=fff`;
 
+  // Get all images sent in this conversation for lightbox navigation
+  const getAllImages = () => {
+    return chatMessages
+      .map(m => m.content)
+      .filter(c => c.startsWith('[IMAGE]') || c.startsWith('[GIF]'))
+      .map(c => c.startsWith('[IMAGE]') ? c.slice(7) : c.slice(5));
+  };
+
+  const handlePrevImage = () => {
+    const list = getAllImages();
+    if (!lightboxImg || list.length <= 1) return;
+    const idx = list.indexOf(lightboxImg);
+    if (idx === -1) return;
+    const prevIdx = (idx - 1 + list.length) % list.length;
+    setLightboxImg(list[prevIdx]);
+  };
+
+  const handleNextImage = () => {
+    const list = getAllImages();
+    if (!lightboxImg || list.length <= 1) return;
+    const idx = list.indexOf(lightboxImg);
+    if (idx === -1) return;
+    const nextIdx = (idx + 1) % list.length;
+    setLightboxImg(list[nextIdx]);
+  };
+
   /* ─── Render message content ─────────────────────────────────────────────── */
   const renderContent = (msg: Msg) => {
     const c = msg.content;
     if (c.startsWith('[IMAGE]')) {
+      const src = c.slice(7);
       return (
         <img
-          src={c.slice(7)}
+          src={src}
           alt="imagen"
           className="cw-bubble-img"
-          onClick={() => window.open(c.slice(7), '_blank')}
+          style={{ maxWidth: '140px', maxHeight: '140px', objectFit: 'cover', borderRadius: '12px', display: 'block', cursor: 'pointer' }}
+          onClick={() => setLightboxImg(src)}
         />
       );
     }
     if (c.startsWith('[GIF]')) {
+      const src = c.slice(5);
       return (
         <img
-          src={c.slice(5)}
+          src={src}
           alt="gif"
           className="cw-bubble-img"
+          style={{ maxWidth: '140px', maxHeight: '140px', objectFit: 'cover', borderRadius: '12px', display: 'block', cursor: 'pointer' }}
+          onClick={() => setLightboxImg(src)}
         />
       );
     }
@@ -573,6 +605,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             )}
           </div>
         </>
+      )}
+
+      {/* ─── Lightbox Image Viewer Modal ────────────────────────────────────── */}
+      {lightboxImg && (
+        <div className="cw-lightbox" onClick={() => setLightboxImg(null)}>
+          <button className="cw-lightbox-close" onClick={() => setLightboxImg(null)}>×</button>
+          
+          <button 
+            className="cw-lightbox-nav cw-nav-prev" 
+            onClick={e => { e.stopPropagation(); handlePrevImage(); }}
+            title="Anterior"
+          >
+            ‹
+          </button>
+          
+          <div className="cw-lightbox-content" onClick={e => e.stopPropagation()}>
+            <img src={lightboxImg} alt="visualización" />
+          </div>
+          
+          <button 
+            className="cw-lightbox-nav cw-nav-next" 
+            onClick={e => { e.stopPropagation(); handleNextImage(); }}
+            title="Siguiente"
+          >
+            ›
+          </button>
+        </div>
       )}
 
       {/* ─── Styles ────────────────────────────────────────────────────────── */}
@@ -890,6 +949,86 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }
         .cw-send-active:hover { transform:scale(1.08); box-shadow:0 4px 16px rgba(8,102,255,0.6); }
         .cw-send-active:disabled { opacity:0.6; transform:none; }
+
+        /* LIGHTBOX VISUALIZER */
+        .cw-lightbox {
+          position: fixed;
+          inset: 0;
+          background: rgba(5, 5, 10, 0.95);
+          backdrop-filter: blur(15px);
+          z-index: 100000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: lboxFade 0.25s ease-out;
+        }
+        @keyframes lboxFade { from { opacity: 0; } to { opacity: 1; } }
+        
+        .cw-lightbox-content {
+          max-width: 80%;
+          max-height: 80%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: lboxZoom 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes lboxZoom { from { transform: scale(0.92); } to { transform: scale(1); } }
+        
+        .cw-lightbox-content img {
+          max-width: 100%;
+          max-height: 80vh;
+          border-radius: 12px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+          border: 1px solid rgba(255,255,255,0.1);
+          object-fit: contain;
+        }
+
+        .cw-lightbox-close {
+          position: absolute;
+          top: 20px;
+          right: 25px;
+          background: rgba(255,255,255,0.06);
+          border: none;
+          color: white;
+          font-size: 2.2rem;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        .cw-lightbox-close:hover {
+          background: rgba(255,60,60,0.25);
+          color: #ff4d4d;
+        }
+
+        .cw-lightbox-nav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255,255,255,0.06);
+          border: none;
+          color: white;
+          font-size: 3rem;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          user-select: none;
+        }
+        .cw-lightbox-nav:hover {
+          background: rgba(255,255,255,0.15);
+          transform: translateY(-50%) scale(1.1);
+        }
+        .cw-nav-prev { left: 40px; }
+        .cw-nav-next { right: 40px; }
 
         /* Spinner */
         .cw-spinner {
