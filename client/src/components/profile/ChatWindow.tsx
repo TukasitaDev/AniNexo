@@ -311,9 +311,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         )}
 
                         <div className="cw-bubble-col">
-                          <div className={`cw-bubble ${mine ? 'cw-mine' : 'cw-theirs'} ${isSticker ? 'cw-bubble-sticker' : ''}`}>
-                            {renderContent(msg)}
-                          </div>
+                          {(() => {
+                            const isImage = msg.content.startsWith('[IMAGE]');
+                            const isGif = msg.content.startsWith('[GIF]');
+                            const bubbleClass = `cw-bubble ${mine ? 'cw-mine' : 'cw-theirs'} ${
+                              isSticker ? 'cw-bubble-sticker' :
+                              isImage ? 'cw-bubble-image' :
+                              isGif ? 'cw-bubble-gif' : ''
+                            }`;
+                            return (
+                              <div className={bubbleClass}>
+                                {renderContent(msg)}
+                              </div>
+                            );
+                          })()}
                           {/* Time on hover */}
                           {msg.createdAt && (
                             <span className={`cw-time ${mine ? 'cw-time-mine' : 'cw-time-theirs'}`}>
@@ -628,19 +639,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           border-bottom-left-radius:4px;
           border:1px solid rgba(255,255,255,0.07);
         }
-        .cw-bubble-sticker {
-          background:transparent !important;
-          border:none !important;
-          box-shadow:none !important;
-          padding:0 !important;
+        .cw-bubble-sticker, .cw-bubble-image, .cw-bubble-gif {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          overflow: hidden;
         }
-        .cw-sticker { font-size:2.2rem; line-height:1; }
+        .cw-sticker { font-size: 2.2rem; line-height: 1; display: block; }
         .cw-bubble-img {
-          max-width:200px; max-height:200px;
-          border-radius:12px; object-fit:cover;
-          cursor:pointer; display:block;
+          max-width: 100%;
+          max-height: 220px;
+          border-radius: 12px; 
+          object-fit: contain;
+          cursor: pointer; 
+          display: block;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
-        .cw-bubble-audio { width:200px; height:36px; }
+        .cw-bubble-audio { max-width: 100%; width: 200px; height: 36px; display: block; }
 
         /* Time */
         .cw-time {
