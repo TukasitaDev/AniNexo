@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimeCard } from '../../../components/discovery/AnimeCard';
 import { MangaCard } from '../../../components/discovery/MangaCard';
 import Link from 'next/link';
+import { Compass, Filter, X, RefreshCw, Sparkles, ChevronDown } from 'lucide-react';
 
 const GENRES = [
   "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Horror", 
@@ -29,6 +30,7 @@ export default function SearchPage() {
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchMode, setSearchMode] = useState<'anime' | 'manga'>('anime');
+  const [showFilters, setShowFilters] = useState(false);
   
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -59,14 +61,12 @@ export default function SearchPage() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
     try {
-      // 1. Cargar Usuarios y Mangas para búsqueda global en primera página si hay query
       if (pageNum === 1 && query) {
         try {
           const resUser = await fetch(`${apiUrl}/search/global?q=${encodeURIComponent(query)}`);
           const globalData = await resUser.json();
           if (globalData.success) {
             setUsers(globalData.data.users || []);
-            // Si estamos en modo anime pero devuelve mangas, o viceversa, actualizamos el pool secundario
             if (searchMode === 'manga') {
               setMangas(globalData.data.mangas || []);
             }
@@ -103,7 +103,6 @@ export default function SearchPage() {
           });
         } else { setHasMore(false); }
       } else {
-        // Modo Manga (MangaDex)
         if (query) {
           const offset = (pageNum - 1) * 20;
           const res = await fetch(`${apiUrl}/manga/search?q=${encodeURIComponent(query)}&limit=20&offset=${offset}`);
@@ -171,92 +170,126 @@ export default function SearchPage() {
     setSelectedGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
   };
 
+  const activeFiltersCount = selectedGenres.length + (year ? 1 : 0) + (season ? 1 : 0) + (status ? 1 : 0) + (format ? 1 : 0);
+
   return (
     <div className="search-page">
-      <aside className="filter-sidebar">
-        <div className="filter-section">
-          <h3>Dimensiones Nexo</h3>
-          <p className="subtitle">Filtra el multiverso anime & manga</p>
-          <div className="search-input-wrapper">
-            <input 
-              type="text" 
-              placeholder={searchMode === 'anime' ? "Buscar anime..." : "Buscar manga..."} 
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+      {/* Floating Toggle Button for Drawer */}
+      <div className="explore-trigger-bar">
+        <button 
+          className={`explore-toggle-btn ${showFilters ? 'active' : ''}`}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Compass className="icon-explore" size={18} />
+          <span>Explorar Multiverso</span>
+          {activeFiltersCount > 0 && <span className="filter-count-badge">{activeFiltersCount}</span>}
+          <ChevronDown className={`arrow-icon ${showFilters ? 'rotated' : ''}`} size={18} />
+        </button>
+      </div>
+
+      {/* Dropdown Filters Drawer Container */}
+      <div className={`filters-drawer-overlay ${showFilters ? 'show' : ''}`} onClick={() => setShowFilters(false)} />
+      
+      <div className={`filters-drawer ${showFilters ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <div className="drawer-title-area">
+            <Sparkles size={18} className="title-sparkle" />
+            <h3>Dimensiones Nexo</h3>
           </div>
+          <button className="close-drawer-btn" onClick={() => setShowFilters(false)}>
+            <X size={20} />
+          </button>
         </div>
 
-        {searchMode === 'anime' && (
-          <>
-            <div className="filter-section">
-              <h4>Géneros Totales</h4>
-              <div className="genre-cloud">
-                {GENRES.map(g => (
-                  <button 
-                    key={g} 
-                    className={selectedGenres.includes(g) ? 'active' : ''}
-                    onClick={() => toggleGenre(g)}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
+        <div className="drawer-scroll-content">
+          <div className="filter-section">
+            <p className="subtitle">Filtra el multiverso anime & manga</p>
+            <div className="search-input-wrapper">
+              <input 
+                type="text" 
+                placeholder={searchMode === 'anime' ? "Buscar anime..." : "Buscar manga..."} 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
             </div>
-
-            <div className="filter-row">
-              <div className="filter-item">
-                <h4>Año</h4>
-                <select value={year} onChange={(e) => setYear(e.target.value)}>
-                  <option value="">Todos</option>
-                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-              <div className="filter-item">
-                <h4>Temporada</h4>
-                <select value={season} onChange={(e) => setSeason(e.target.value)}>
-                  <option value="">Todas</option>
-                  {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="filter-row">
-              <div className="filter-item">
-                <h4>Estado</h4>
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">Todos</option>
-                  {STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                </select>
-              </div>
-              <div className="filter-item">
-                <h4>Formato</h4>
-                <select value={format} onChange={(e) => setFormat(e.target.value)}>
-                  <option value="">Todos</option>
-                  {FORMATS.map(f => <option key={f} value={f}>{f.replace('_', ' ')}</option>)}
-                </select>
-              </div>
-            </div>
-          </>
-        )}
-
-        {searchMode === 'manga' && (
-          <div className="manga-help-box">
-            <p>Buscando en la base de datos global de MangaDex. Los filtros de dimensiones sólo aplican para el buscador de Anime.</p>
           </div>
-        )}
 
-        <button className="reset-btn" onClick={() => {
-          setQuery('');
-          setSelectedGenres([]);
-          setYear('');
-          setSeason('');
-          setStatus('');
-          setFormat('');
-        }}>
-          Reiniciar Multiverso
-        </button>
-      </aside>
+          {searchMode === 'anime' && (
+            <>
+              <div className="filter-section">
+                <h4>Géneros Totales</h4>
+                <div className="genre-cloud">
+                  {GENRES.map(g => (
+                    <button 
+                      key={g} 
+                      className={selectedGenres.includes(g) ? 'active' : ''}
+                      onClick={() => toggleGenre(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-row">
+                <div className="filter-item">
+                  <h4>Año</h4>
+                  <select value={year} onChange={(e) => setYear(e.target.value)}>
+                    <option value="">Todos</option>
+                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="filter-item">
+                  <h4>Temporada</h4>
+                  <select value={season} onChange={(e) => setSeason(e.target.value)}>
+                    <option value="">Todas</option>
+                    {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="filter-row">
+                <div className="filter-item">
+                  <h4>Estado</h4>
+                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">Todos</option>
+                    {STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                  </select>
+                </div>
+                <div className="filter-item">
+                  <h4>Formato</h4>
+                  <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                    <option value="">Todos</option>
+                    {FORMATS.map(f => <option key={f} value={f}>{f.replace('_', ' ')}</option>)}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {searchMode === 'manga' && (
+            <div className="manga-help-box">
+              <p>Buscando en la base de datos global de MangaDex. Los filtros de dimensiones sólo aplican para el buscador de Anime.</p>
+            </div>
+          )}
+
+          <div className="drawer-actions">
+            <button className="reset-btn" onClick={() => {
+              setQuery('');
+              setSelectedGenres([]);
+              setYear('');
+              setSeason('');
+              setStatus('');
+              setFormat('');
+            }}>
+              Reiniciar Multiverso
+            </button>
+            <button className="apply-btn" onClick={() => setShowFilters(false)}>
+              Ver Resultados
+            </button>
+          </div>
+        </div>
+      </div>
 
       <main className="search-results">
         {users.length > 0 && (
@@ -296,7 +329,18 @@ export default function SearchPage() {
           <p>Sincronización híbrida de multiversos: AniList, AniNexo y MangaDex.</p>
         </header>
 
-        {searchMode === 'anime' ? (
+        {loading ? (
+          <div className="galaxy-loading">
+            <div className="nebula-spinner">
+              <div className="ring ring-outer"></div>
+              <div className="ring ring-middle"></div>
+              <div className="ring ring-inner"></div>
+              <Compass className="compass-center" size={30} />
+            </div>
+            <h3>Sincronizando Multiversos...</h3>
+            <p>Descargando líneas temporales de AniList & MangaDex</p>
+          </div>
+        ) : searchMode === 'anime' ? (
           <div className="results-grid">
             {animes.map((anime, index) => {
               const animeProps = {
@@ -343,14 +387,7 @@ export default function SearchPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <span>Sincronizando con la API...</span>
-          </div>
-        )}
-
-        {!hasMore && (animes.length > 0 || mangas.length > 0) && (
+        {!loading && !hasMore && (animes.length > 0 || mangas.length > 0) && (
           <div className="end-msg">Has llegado al final de esta dimensión.</div>
         )}
         
@@ -369,43 +406,348 @@ export default function SearchPage() {
       </main>
 
       <style jsx>{`
-        .search-page { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; background: #050505; padding-top: 75px; }
-        .filter-sidebar { padding: 2.5rem 1.5rem; background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.03); height: calc(100vh - 75px); position: sticky; top: 75px; overflow-y: auto; }
-        .filter-section { margin-bottom: 2.5rem; }
-        .filter-section h3 { font-size: 1.4rem; font-weight: 900; color: #fff; margin-bottom: 5px; }
-        .subtitle { font-size: 0.8rem; color: #555; margin-bottom: 1.5rem; }
-        .filter-section h4 { font-size: 0.75rem; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; font-weight: 800; }
-        .search-input-wrapper input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 14px 18px; border-radius: 12px; color: white; outline: none; transition: all 0.3s; }
+        .search-page { display: flex; flex-direction: column; min-height: 100vh; background: #050505; padding-top: 75px; position: relative; }
+        
+        /* Floating Dropdown Toggle Bar */
+        .explore-trigger-bar {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          padding: 1.5rem 5% 0.5rem;
+          z-index: 90;
+        }
+
+        .explore-toggle-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: rgba(10, 10, 12, 0.85);
+          border: 1px solid rgba(0, 229, 255, 0.2);
+          padding: 12px 24px;
+          border-radius: 30px;
+          color: #fff;
+          font-weight: 800;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+          backdrop-filter: blur(15px);
+        }
+
+        .explore-toggle-btn:hover, .explore-toggle-btn.active {
+          border-color: #00E5FF;
+          box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+          transform: translateY(-2px);
+        }
+
+        .icon-explore {
+          color: #00E5FF;
+          animation: pulse 2s infinite;
+        }
+
+        .filter-count-badge {
+          background: #00E5FF;
+          color: #000;
+          font-size: 0.75rem;
+          font-weight: 900;
+          padding: 2px 7px;
+          border-radius: 10px;
+        }
+
+        .arrow-icon {
+          color: #888;
+          transition: transform 0.3s;
+        }
+        
+        .arrow-icon.rotated {
+          transform: rotate(180deg);
+          color: #00E5FF;
+        }
+
+        /* Dropdown Drawer */
+        .filters-drawer {
+          position: absolute;
+          top: 140px;
+          left: 50%;
+          transform: translateX(-50%) translateY(-20px);
+          width: 90%;
+          max-width: 600px;
+          background: rgba(8, 8, 10, 0.95);
+          border: 1px solid rgba(0, 229, 255, 0.25);
+          border-radius: 20px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+          z-index: 100;
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          backdrop-filter: blur(20px);
+        }
+
+        .filters-drawer.open {
+          opacity: 1;
+          visibility: visible;
+          pointer-events: all;
+          transform: translateX(-50%) translateY(0);
+        }
+
+        .filters-drawer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          backdrop-filter: blur(4px);
+          z-index: 95;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s;
+        }
+
+        .filters-drawer-overlay.show {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .drawer-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 25px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .drawer-title-area {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .title-sparkle {
+          color: #00E5FF;
+        }
+
+        .drawer-header h3 {
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #fff;
+          margin: 0;
+        }
+
+        .close-drawer-btn {
+          background: none;
+          border: none;
+          color: #888;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+
+        .close-drawer-btn:hover {
+          color: #fff;
+        }
+
+        .drawer-scroll-content {
+          padding: 25px;
+          max-height: 70vh;
+          overflow-y: auto;
+        }
+
+        .filter-section { margin-bottom: 2rem; }
+        .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 1.2rem; }
+        .filter-section h4 { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; font-weight: 800; }
+        
+        .search-input-wrapper input { 
+          width: 100%; 
+          background: rgba(255,255,255,0.03); 
+          border: 1px solid rgba(0, 229, 255, 0.15); 
+          padding: 14px 18px; 
+          border-radius: 12px; 
+          color: white; 
+          outline: none; 
+          font-size: 0.95rem;
+          transition: all 0.3s; 
+        }
+        
+        .search-input-wrapper input:focus {
+          border-color: #00E5FF;
+          box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+        }
+
         .genre-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
-        .genre-cloud button { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 5px 10px; border-radius: 6px; color: #777; font-size: 0.75rem; cursor: pointer; }
-        .genre-cloud button.active { background: #00E5FF; color: #000; font-weight: 800; }
-        .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.2rem; }
-        .filter-item select { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 8px; color: #ccc; }
-        .reset-btn { width: 100%; padding: 14px; margin-top: 1rem; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); color: #666; border-radius: 12px; cursor: pointer; }
+        .genre-cloud button { 
+          background: rgba(255,255,255,0.02); 
+          border: 1px solid rgba(255,255,255,0.05); 
+          padding: 6px 12px; 
+          border-radius: 8px; 
+          color: #888; 
+          font-size: 0.75rem; 
+          cursor: pointer; 
+          transition: all 0.2s;
+        }
+        .genre-cloud button:hover {
+          border-color: rgba(0, 229, 255, 0.3);
+          color: #fff;
+        }
+        .genre-cloud button.active { background: #00E5FF; border-color: #00E5FF; color: #000; font-weight: 800; }
         
-        .manga-help-box { background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 12px; padding: 15px; color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 2rem; }
+        .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+        .filter-item select { 
+          width: 100%; 
+          background: rgba(255,255,255,0.02); 
+          border: 1px solid rgba(255,255,255,0.05); 
+          padding: 12px; 
+          border-radius: 8px; 
+          color: #ccc; 
+          outline: none;
+          cursor: pointer;
+          transition: border-color 0.2s;
+        }
+        .filter-item select:focus {
+          border-color: #00E5FF;
+        }
+
+        .drawer-actions {
+          display: flex;
+          gap: 15px;
+          margin-top: 2rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .reset-btn { 
+          flex: 1;
+          padding: 14px; 
+          background: transparent; 
+          border: 1px solid rgba(255, 255, 255, 0.1); 
+          color: #888; 
+          border-radius: 12px; 
+          font-weight: 700;
+          cursor: pointer; 
+          transition: all 0.2s;
+        }
+        .reset-btn:hover {
+          border-color: #ff4d4d;
+          color: #ff4d4d;
+        }
+
+        .apply-btn {
+          flex: 2;
+          padding: 14px;
+          background: #00E5FF;
+          border: none;
+          color: #000;
+          font-weight: 900;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .apply-btn:hover {
+          box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+          transform: translateY(-1px);
+        }
         
-        .search-results { padding: 3rem 5%; }
+        .manga-help-box { background: rgba(0, 229, 255, 0.03); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 12px; padding: 15px; color: #aaa; font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem; }
+        
+        /* Results Section */
+        .search-results { padding: 2rem 5% 5rem; width: 100%; }
         .section-title-alt { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #00E5FF; margin-bottom: 20px; font-weight: 900; }
         .community-results { margin-bottom: 50px; padding-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .users-grid-horizontal { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; }
-        .user-search-card { min-width: 200px; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; display: flex; align-items: center; gap: 15px; text-decoration: none; border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s; }
-        .user-search-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: #00E5FF; }
+        .user-search-card { min-width: 200px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 20px; display: flex; align-items: center; gap: 15px; text-decoration: none; border: 1px solid rgba(255,255,255,0.04); transition: all 0.3s; }
+        .user-search-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.04); border-color: #00E5FF; }
         .user-avatar-wrap { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; }
         .user-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
         .u-name { color: #fff; font-weight: 700; margin: 0; font-size: 0.95rem; }
         .u-arch { color: #555; font-size: 0.75rem; margin: 2px 0 0 0; }
 
-        .results-header { margin-bottom: 4rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2rem; }
-        .header-tabs { display: flex; gap: 20px; margin-bottom: 10px; }
-        .tab-btn { background: transparent; border: none; font-size: 2.2rem; font-weight: 950; color: #444; cursor: pointer; padding: 0; position: relative; transition: color 0.3s; }
+        .results-header { margin-bottom: 3rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 1.5rem; }
+        .header-tabs { display: flex; gap: 25px; margin-bottom: 10px; }
+        .tab-btn { background: transparent; border: none; font-size: 2.2rem; font-weight: 950; color: #333; cursor: pointer; padding: 0; position: relative; transition: color 0.3s; }
         .tab-btn.active { color: #fff; }
         .tab-btn.active::after { content: ''; position: absolute; bottom: -8px; left: 0; right: 0; height: 4px; background: #00E5FF; border-radius: 2px; }
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 40px; }
         
-        .loading-spinner { display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 5rem; }
-        .spinner { width: 35px; height: 35px; border: 3px solid rgba(0, 229, 255, 0.05); border-left-color: #00E5FF; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 30px; }
+        
+        /* Galaxy Loading Animation */
+        .galaxy-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 8rem 2rem;
+          text-align: center;
+        }
+
+        .nebula-spinner {
+          position: relative;
+          width: 80px;
+          height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 25px;
+        }
+
+        .ring {
+          position: absolute;
+          border-radius: 50%;
+          border: 2px solid transparent;
+        }
+
+        .ring-outer {
+          width: 80px;
+          height: 80px;
+          border-top-color: #00E5FF;
+          animation: spin-clockwise 2s linear infinite;
+        }
+
+        .ring-middle {
+          width: 60px;
+          height: 60px;
+          border-right-color: #FF007F;
+          animation: spin-counterclockwise 1.5s linear infinite;
+        }
+
+        .ring-inner {
+          width: 40px;
+          height: 40px;
+          border-bottom-color: #7000FF;
+          animation: spin-clockwise 1s linear infinite;
+        }
+
+        .compass-center {
+          color: #00E5FF;
+          filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6));
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .galaxy-loading h3 {
+          font-size: 1.3rem;
+          font-weight: 800;
+          color: #fff;
+          margin: 0 0 8px 0;
+          letter-spacing: -0.5px;
+        }
+
+        .galaxy-loading p {
+          color: #555;
+          font-size: 0.85rem;
+          margin: 0;
+        }
+
+        @keyframes spin-clockwise {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spin-counterclockwise {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.15); opacity: 1; }
+        }
         
         .end-msg { grid-column: 1 / -1; text-align: center; color: #444; padding: 3rem 0; font-size: 0.9rem; font-weight: bold; }
         .no-results { grid-column: 1 / -1; display: flex; justify-content: center; padding: 5rem 0; }
@@ -414,6 +756,15 @@ export default function SearchPage() {
         .no-results-content h3 { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
         .no-results-content p { color: #555; font-size: 0.9rem; margin-bottom: 1.5rem; }
         .no-results-content button { background: #00E5FF; color: #000; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        @media (max-width: 768px) {
+          .filters-drawer {
+            width: 95%;
+          }
+          .tab-btn {
+            font-size: 1.6rem;
+          }
+        }
       `}</style>
     </div>
   );
