@@ -67,29 +67,32 @@ export const MessengerChatButton: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/messaging/message`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/messaging/send`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ conversationId, senderId: user.id, content: content.trim() }),
         }
       );
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         setChatMessages(prev => [
           ...prev,
           {
-            id: Date.now(),
+            id: data.data?.id ?? Date.now(),
             content,
             type,
             senderId: user.id,
-            createdAt: new Date().toISOString(),
+            createdAt: data.data?.createdAt ?? new Date().toISOString(),
             sender: { username: user.username, avatarUrl: user.avatarUrl },
           },
         ]);
         setChatInput('');
+      } else {
+        console.error('Error enviando mensaje:', data);
       }
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error('Error de red al enviar mensaje:', err);
     } finally {
       setIsSending(false);
     }

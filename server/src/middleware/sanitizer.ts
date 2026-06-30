@@ -39,21 +39,24 @@ const sanitize = (data: any): any => {
 };
 
 export const sanitizerMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const sanitizeInPlace = (obj: any) => {
+  // Skip deep sanitization for message content (can contain base64 images/audio)
+  const isMessagingSend = req.path === '/send' && req.baseUrl?.includes('messaging');
+
+  const sanitizeInPlace = (obj: any, skipKeys: string[] = []) => {
     if (!obj || typeof obj !== 'object') return;
     for (const key in obj) {
+      if (skipKeys.includes(key)) continue;
       if (typeof obj[key] === 'string') {
         obj[key] = sanitizeString(obj[key]);
       } else if (typeof obj[key] === 'object') {
-        sanitizeInPlace(obj[key]);
+        sanitizeInPlace(obj[key], skipKeys);
       }
     }
   };
 
-  if (req.body) sanitizeInPlace(req.body);
+  if (req.body) sanitizeInPlace(req.body, isMessagingSend ? ['content'] : []);
   if (req.query) sanitizeInPlace(req.query);
   if (req.params) sanitizeInPlace(req.params);
 
   next();
 };
-
