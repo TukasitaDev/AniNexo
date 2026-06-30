@@ -212,9 +212,16 @@ export const MessengerChatButton: React.FC = () => {
             <path d="M19 9l-7 7-7-7" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
-            <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.9 1.15 5.56 3.2 7.42.16.15.26.37.26.6l-.08 2.2a.8.8 0 0 0 1.15.75l2.48-1.37c.18-.1.4-.1.6-.04 1.16.32 2.37.49 3.6.49 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm1.18 11.23-2.02-2.15-3.95 2.15c-.42.23-.92-.25-.7-.7l2.02-4.32a.8.8 0 0 1 1.09-.43l2.02 2.15 3.95-2.15c.42-.23.92-.25.7.7l-2.02 4.32a.8.8 0 0 1-1.09-.43z" />
-          </svg>
+          <img 
+            src="/nexo_chat_mascot.png" 
+            alt="Nexo" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              borderRadius: '50%', 
+              objectFit: 'cover' 
+            }} 
+          />
         )}
         {!isOpen && <span className="msgr-fab-ring" />}
       </button>
@@ -340,10 +347,12 @@ export const MessengerChatButton: React.FC = () => {
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           position: relative;
-          background: linear-gradient(135deg, #0866ff 0%, #0099ff 50%, #5f00ff 100%);
+          background: transparent;
+          padding: 0;
+          overflow: hidden;
           box-shadow:
-            0 6px 22px rgba(8,102,255,0.55),
-            0 2px 8px rgba(0,0,0,0.4);
+            0 6px 22px rgba(8,102,255,0.4),
+            0 2px 8px rgba(0,0,0,0.3);
           transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
           animation: fabAppear 0.4s cubic-bezier(0.16,1,0.3,1) both;
           flex-shrink: 0;
