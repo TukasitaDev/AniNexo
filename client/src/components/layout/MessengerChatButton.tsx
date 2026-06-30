@@ -213,7 +213,7 @@ export const MessengerChatButton: React.FC = () => {
           </svg>
         ) : (
           <img 
-            src="/nexo_chat_mascot.png" 
+            src="/nexo_chat_mascot.png?v=2" 
             alt="Nexo" 
             style={{ 
               width: '100%', 
