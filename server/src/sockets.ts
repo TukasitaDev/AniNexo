@@ -9,9 +9,9 @@ import { redis } from './lib/redis';
 
 const messagingService = new MessagingService();
 
-// Mapa global para rastrear usuarios conectados (userId -> socketId)
-// NOTA: En escala horizontal esto se mueve a Redis.
 const onlineUsers = new Map<string, string>();
+// userId -> presence status ('online' | 'away' | 'busy' | 'offline')
+const userPresences = new Map<string, string>();
 
 export function setupSockets(io: Server) {
   // Configuración de Redis Adapter para escalado horizontal (Solo si hay Redis real)
@@ -75,8 +75,24 @@ export function setupSockets(io: Server) {
     // Unirse a sala personal para notificaciones directas
     socket.join(`user:${userId}`);
 
-    // Notificar a otros que este usuario está online (Opcional: solo a seguidores)
+    // Notificar a otros que este usuario está online
+    userPresences.set(userId, 'online');
     socket.broadcast.emit('user_status', { userId, status: 'online' });
+
+    // Permitir al usuario cambiar su estado (online, busy, away)
+    socket.on('set_status', (data: { status: 'online' | 'away' | 'busy' }) => {
+      userPresences.set(userId, data.status);
+      io.emit('user_status', { userId, status: data.status });
+    });
+
+    // Permitir obtener el estado de presencia de un usuario o lista de usuarios
+    socket.on('get_user_statuses', (userIds: string[], callback?: (statuses: Record<string, string>) => void) => {
+      const statuses: Record<string, string> = {};
+      userIds.forEach(id => {
+        statuses[id] = userPresences.get(id) || 'offline';
+      });
+      if (callback) callback(statuses);
+    });
 
     // Unirse a una sala de conversación
     socket.on('join_conversation', (conversationId: string) => {
@@ -107,13 +123,20 @@ export function setupSockets(io: Server) {
     });
 
     // Mensaje Leído
-    socket.on('message_read', async (data: { conversationId: string, messageId: string }) => {
-      // Emitir a la sala que el mensaje fue leído
-      io.to(`conv_${data.conversationId}`).emit('message_seen', { messageId: data.messageId, userId });
+    socket.on('message_read', async (data: { conversationId: string }) => {
+      try {
+        // Guardar el visto en la base de datos de verdad
+        await messagingService.markMessagesAsRead(data.conversationId, userId);
+        // Notificar en tiempo real en la sala
+        io.to(`conv_${data.conversationId}`).emit('message_seen', { conversationId: data.conversationId, userId });
+      } catch (error) {
+        logger.error('[socket]: Error marcando mensaje como leído', error);
+      }
     });
 
     socket.on('disconnect', async () => {
       onlineUsers.delete(userId);
+      userPresences.delete(userId);
       socket.broadcast.emit('user_status', { userId, status: 'offline' });
       
       // Telemetría: Finalizar Sesión

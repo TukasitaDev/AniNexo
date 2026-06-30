@@ -19,7 +19,7 @@ export const useGlobalSocket = () => useContext(SocketContext);
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { socket, isConnected } = useSocket();
   const addToast = useNotificationStore((s) => s.addToast);
-  const { setOnlineStatus, setTyping } = useChatStore();
+  const { setUserStatus, setTyping } = useChatStore();
 
   useEffect(() => {
     if (socket && isConnected) {
@@ -31,7 +31,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
       // Presencia
       socket.on('user_status', ({ userId, status }) => {
-        setOnlineStatus(userId, status === 'online');
+        setUserStatus(userId, status);
       });
 
       // Escritura

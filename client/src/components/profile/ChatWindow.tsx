@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useGlobalSocket } from '../auth/SocketProvider';
+import { useChatStore } from '../../store/useChatStore';
 
 /* ─── Sticker set (anime-themed emojis) ─────────────────────────────────── */
 const STICKERS = [
@@ -21,6 +23,7 @@ interface Msg {
   createdAt?: string;
   type?: 'text' | 'image' | 'audio' | 'sticker' | 'gif';
   seen?: boolean;
+  isRead?: boolean;
   audioUrl?: string;
   imageUrl?: string;
 }
@@ -40,9 +43,13 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   profile, currentUser, conversationId, chatMessages,
-  chatInput, isConnected, isSending,
+  chatInput, isConnected: isConnectedProp, isSending,
   setChatInput, onSendMessage, onClose,
 }) => {
+  const { socket, isConnected: isSocketConnected } = useGlobalSocket();
+  const userStatuses = useChatStore(s => s.userStatuses);
+  const typingUsers = useChatStore(s => s.typingUsers);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef      = useRef<HTMLInputElement>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
@@ -55,6 +62,56 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [recording,   setRecording]   = useState(false);
   const [audioSec,    setAudioSec]    = useState(0);
   const [imagePreview, setImagePreview] = useState<string|null>(null);
+  const [messagesSeenMap, setMessagesSeenMap] = useState<Record<string, boolean>>({});
+
+  // Presence status mapping
+  const activeStatus = userStatuses[profile?.id] || 'offline';
+  
+  // Typing state for this conversation & user
+  const isTyping = typingUsers.get(`${conversationId}_${profile?.id}`) || false;
+
+  // Active status visual label and colors
+  const statusLabel = {
+    online: 'En línea',
+    away: 'Ausente',
+    busy: 'Ocupado',
+    offline: 'Desconectado'
+  }[activeStatus];
+
+  const statusColor = {
+    online: '#31a24c',
+    away: '#f59e0b',
+    busy: '#ef4444',
+    offline: '#6b7280'
+  }[activeStatus];
+
+  // Socket: Join conversation & Emit read receipt when conversation opens or new message arrives
+  useEffect(() => {
+    if (socket && isSocketConnected && conversationId) {
+      socket.emit('join_conversation', conversationId);
+      socket.emit('message_read', { conversationId });
+
+      const handleSeen = (data: { conversationId: string; userId: string }) => {
+        if (data.conversationId === conversationId && data.userId !== currentUser.id) {
+          // Mark all current messages sent by me as seen
+          setMessagesSeenMap(prev => ({ ...prev, [conversationId]: true }));
+        }
+      };
+
+      socket.on('message_seen', handleSeen);
+
+      return () => {
+        socket.off('message_seen', handleSeen);
+      };
+    }
+  }, [socket, isSocketConnected, conversationId, chatMessages.length, currentUser.id]);
+
+  // Mark incoming messages as read when we focus or type
+  useEffect(() => {
+    if (socket && isSocketConnected && conversationId && !minimized) {
+      socket.emit('message_read', { conversationId });
+    }
+  }, [socket, isSocketConnected, conversationId, minimized]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef   = useRef<Blob[]>([]);
@@ -150,10 +207,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
-    clearInterval(audioTimerRef.current!);
+    if (audioTimerRef.current) clearInterval(audioTimerRef.current);
     setRecording(false);
     setAudioSec(0);
   };
+
+  // Typing Indicator socket emitter
+  useEffect(() => {
+    if (socket && isSocketConnected && conversationId) {
+      if (chatInput.length > 0) {
+        socket.emit('typing', { conversationId });
+      } else {
+        socket.emit('stop_typing', { conversationId });
+      }
+    }
+  }, [chatInput, socket, isSocketConnected, conversationId]);
 
   /* ─── Helpers ────────────────────────────────────────────────────────────── */
   const formatTime = (s?: string) => {
@@ -229,18 +297,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className={`cw-root ${minimized ? 'cw-minimized' : ''}`}>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="cw-header">
+      <div className="cw-header" onClick={() => setMinimized(m => !m)}>
         <div className="cw-header-left">
           <div className="cw-hdr-avatar">
             <img src={profileAvatar} alt={profile?.username} />
-            {isConnected && <span className="cw-hdr-dot" />}
+            <span className="cw-hdr-dot" />
           </div>
           <div className="cw-hdr-info">
             <span className="cw-hdr-name">@{profile?.username}</span>
-            <span className="cw-hdr-status">{isConnected ? 'En línea' : 'Hace un momento'}</span>
+            <span className="cw-hdr-status">{statusLabel}</span>
           </div>
         </div>
-        <div className="cw-header-actions">
+        <div className="cw-header-actions" onClick={e => e.stopPropagation()}>
           {/* Call — disabled placeholder */}
           <button className="cw-hdr-btn" title="Llamada (próximamente)" disabled>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -297,6 +365,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     const isLastOverall = gi === groupedMessages().length - 1 && isLast;
                     const showAvatar = !mine;
                     const isSticker = msg.type === 'sticker' || (!msg.content.startsWith('[') && /^\p{Emoji}/u.test(msg.content) && msg.content.length <= 4);
+                    
+                    const wasSeenReal = msg.isRead || messagesSeenMap[conversationId || ''] === true || msg.seen;
 
                     return (
                       <div key={msg.id ?? mi} className={`cw-row ${mine ? 'cw-row-mine' : 'cw-row-theirs'}`}>
@@ -331,8 +401,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               {formatTime(msg.createdAt)}
                             </span>
                           )}
-                          {/* Seen indicator — only on last sent message */}
-                          {mine && isLastOverall && (
+                          {/* Seen indicator — only on last sent message and ONLY when really seen */}
+                          {mine && isLastOverall && wasSeenReal && (
                             <div className="cw-seen-row">
                               <img src={profileAvatar} alt="visto" className="cw-seen-avatar" />
                               <span className="cw-seen-label">Visto</span>
@@ -547,9 +617,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         .cw-hdr-dot {
           position:absolute; bottom:1px; right:1px;
           width:9px; height:9px;
-          background:#31a24c; border-radius:50%;
+          background: ${statusColor}; border-radius:50%;
           border:2px solid #0866ff;
-          box-shadow:0 0 5px rgba(49,162,76,0.8);
+          box-shadow:0 0 5px ${statusColor};
+          transition: background-color 0.25s, box-shadow 0.25s;
         }
         .cw-hdr-info { display:flex; flex-direction:column; }
         .cw-hdr-name { font-size:0.88rem; font-weight:800; color:white; line-height:1.2; }

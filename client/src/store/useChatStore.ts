@@ -10,19 +10,22 @@ interface ChatWindow {
 
 interface ChatState {
   activeChats: ChatWindow[];
-  onlineUsers: Set<string>;
+  onlineUsers: Set<string>; // kept for backward compatibility if needed
+  userStatuses: Record<string, 'online' | 'away' | 'busy' | 'offline'>;
   typingUsers: Map<string, boolean>; // convId_userId -> typing
   
   openChat: (convo: ChatWindow) => void;
   closeChat: (convoId: string) => void;
   toggleMinimize: (convoId: string) => void;
   setOnlineStatus: (userId: string, isOnline: boolean) => void;
+  setUserStatus: (userId: string, status: 'online' | 'away' | 'busy' | 'offline') => void;
   setTyping: (convoId: string, userId: string, isTyping: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   activeChats: [],
   onlineUsers: new Set(),
+  userStatuses: {},
   typingUsers: new Map(),
 
   openChat: (convo) => set((state) => {
@@ -33,7 +36,6 @@ export const useChatStore = create<ChatState>((set) => ({
         ) 
       };
     }
-    // Límite de 3 chats abiertos simultáneamente para no saturar la UI
     const newChats = [...state.activeChats, convo].slice(-3);
     return { activeChats: newChats };
   }),
@@ -52,7 +54,26 @@ export const useChatStore = create<ChatState>((set) => ({
     const newSet = new Set(state.onlineUsers);
     if (isOnline) newSet.add(userId);
     else newSet.delete(userId);
-    return { onlineUsers: newSet };
+    return { 
+      onlineUsers: newSet,
+      userStatuses: { 
+        ...state.userStatuses, 
+        [userId]: isOnline ? 'online' : 'offline' 
+      }
+    };
+  }),
+
+  setUserStatus: (userId, status) => set((state) => {
+    const newSet = new Set(state.onlineUsers);
+    if (status !== 'offline') newSet.add(userId);
+    else newSet.delete(userId);
+    return {
+      onlineUsers: newSet,
+      userStatuses: {
+        ...state.userStatuses,
+        [userId]: status
+      }
+    };
   }),
 
   setTyping: (convoId, userId, isTyping) => set((state) => {

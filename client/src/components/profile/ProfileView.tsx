@@ -11,6 +11,8 @@ import { PostItem } from '../feed/PostItem';
 import { UserListModal } from './UserListModal';
 import { ChatModal } from './ChatModal';
 import { useSocket } from '../../hooks/useSocket';
+import { useChatStore } from '../../store/useChatStore';
+import { useGlobalSocket } from '../auth/SocketProvider';
 import styles from './ProfileView.module.css';interface ProfileViewProps {
   profile: any;
   animeList: any[];
@@ -18,6 +20,10 @@ import styles from './ProfileView.module.css';interface ProfileViewProps {
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfile, animeList, collection: initialCollection = [] }) => {
+  const { socket, isConnected } = useGlobalSocket();
+  const userStatuses = useChatStore(s => s.userStatuses);
+  const setUserStatus = useChatStore(s => s.setUserStatus);
+
   const [profile, setProfile] = React.useState(initialProfile);
   const [showProfiling, setShowProfiling] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
@@ -37,8 +43,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showStatusSelector, setShowStatusSelector] = useState(false);
   
-  const { socket, isConnected } = useSocket(conversationId || undefined);
+  const { socket: chatSocket, isConnected: isChatConnected } = useSocket(conversationId || undefined);
   const themeColor = profile.themeColor || '#FF007F'; // Magenta Social por defecto
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -410,13 +417,56 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
               className={styles.avatarImage}
             />
             {profile.isPremium && <span className={styles.premiumLabel}>PREMIUM</span>}
+            
+            {/* Status dot indicator */}
+            <span 
+              className={styles.statusBadgeDot} 
+              style={{ 
+                backgroundColor: {
+                  online: '#31a24c',
+                  away: '#f59e0b',
+                  busy: '#ef4444',
+                  offline: '#6b7280'
+                }[userStatuses[profile.id] || 'offline']
+              }}
+            />
           </div>
 
           <div className={styles.headerInfo}>
             <div>
               <div className={styles.mainInfo}>
-                <h1>
+                <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {profile.username}
+                  
+                  {/* Real-time status text badge */}
+                  <span className={styles.profileStatusText}>
+                    {{
+                      online: '🟢 En línea',
+                      away: '🟡 Ausente',
+                      busy: '🔴 Ocupado',
+                      offline: '⚫ Desconectado'
+                    }[userStatuses[profile.id] || 'offline']}
+                  </span>
+
+                  {isOwnProfile && (
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <button 
+                        onClick={() => setShowStatusSelector(!showStatusSelector)}
+                        className={styles.statusSelectBtn}
+                        title="Cambiar mi estado"
+                      >
+                        ⚙️
+                      </button>
+                      {showStatusSelector && (
+                        <div className={styles.statusDropdown}>
+                          <button onClick={() => { socket?.emit('set_status', { status: 'online' }); setUserStatus(currentUser.id, 'online'); setShowStatusSelector(false); }}>🟢 En línea</button>
+                          <button onClick={() => { socket?.emit('set_status', { status: 'away' }); setUserStatus(currentUser.id, 'away'); setShowStatusSelector(false); }}>🟡 Ausente</button>
+                          <button onClick={() => { socket?.emit('set_status', { status: 'busy' }); setUserStatus(currentUser.id, 'busy'); setShowStatusSelector(false); }}>🔴 Ocupado</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {profile.archetype && (
                     <span className={styles.archetypeBadge} style={{ color: themeColor, borderColor: themeColor }}>
                       ✨ {profile.archetype}
@@ -707,18 +757,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile: initialProfil
           conversationId={conversationId}
           chatMessages={chatMessages}
           chatInput={chatInput}
-          isConnected={isConnected}
+          isConnected={isChatConnected}
           isSending={isSending}
           setChatInput={setChatInput}
           onSendMessage={(content: string) => {
-            if (!socket) return;
+            if (!chatSocket) return;
             setIsSending(true);
             const newMsg = {
               conversationId: conversationId,
               senderId: currentUser?.id,
               content
             };
-            socket.emit('send_message', newMsg);
+            chatSocket.emit('send_message', newMsg);
             setChatMessages(prev => [...prev, {
               ...newMsg,
               id: Date.now(),
