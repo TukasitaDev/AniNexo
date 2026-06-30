@@ -26,9 +26,6 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [mangaId, setMangaId] = useState<string | null>(null);
   const [checkingManga, setCheckingManga] = useState(true);
-  const [translatedDescription, setTranslatedDescription] = useState<string | null>(null);
-  const [studioAnimes, setStudioAnimes] = useState<any[]>([]);
-  const [compareQuery, setCompareQuery] = useState('');
 
   useEffect(() => {
     const loadData = async (force: boolean = false) => {
@@ -44,34 +41,6 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
         }
         setAnime(data);
         setLoading(false);
-
-        // Traducir sinopsis al español al vuelo
-        if (data.description) {
-          try {
-            const rawText = data.description.replace(/<[^>]*>/g, '').trim();
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=${encodeURIComponent(rawText)}`;
-            const tRes = await fetch(url);
-            const tJson = await tRes.json();
-            const translated = (tJson[0] as any[][])
-              .map((segment: any[]) => segment[0])
-              .join('');
-            setTranslatedDescription(translated);
-          } catch (e) {
-            setTranslatedDescription(null);
-          }
-        }
-
-        // Buscar animes del mismo estudio
-        try {
-          const studioName = data.studios?.nodes?.[0]?.name;
-          if (studioName) {
-            const sRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/anime/discovery/search?studios=${encodeURIComponent(studioName)}&perPage=8`);
-            const sJson = await sRes.json();
-            if (sJson.success) {
-              setStudioAnimes((sJson.data?.anime || []).filter((a: any) => a.id !== data.id));
-            }
-          }
-        } catch (e) { /* silencioso */ }
 
         // Buscar manga correspondiente en MangaDex a través de nuestro proxy
         const titleToSearch = data.title?.english || data.title?.romaji;
@@ -320,9 +289,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
              <div key="overview" className="tab-pane animate-fadeInUp animate-delay-100" data-tour="anime-overview">
                <section className="info-block">
                  <h3>Sinopsis</h3>
-                 <div className="description-text">
-                    {translatedDescription ?? stripHtml(anime.description)}
-                  </div>
+                 <div className="description-text">{stripHtml(anime.description)}</div>
                </section>
 
                {anime.relations?.length > 0 && (
@@ -350,118 +317,20 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
                    </div>
                  </section>
                )}
-
-            {/* PANEL: ETIQUETAS CLICABLES */}
-            {anime.tags?.length > 0 && (
-              <section className="info-block">
-                <h3>Etiquetas</h3>
-                <div className="tags-rich-grid">
-                  {anime.tags.map((t: any) => (
-                    <Link
-                      key={t.name}
-                      href={`/dashboard/search?tag=${encodeURIComponent(t.name)}`}
-                      className="tag-rich-pill"
-                      title={t.description || t.name}
-                    >
-                      <span className="tag-rich-name">{t.name}</span>
-                      <span className="tag-rich-bar-wrap">
-                        <span className="tag-rich-bar-fill" style={{ width: `${t.rank}%` }} />
-                      </span>
-                      <span className="tag-rich-pct">{t.rank}%</span>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* PANEL: POPULARIDAD VISUAL */}
-            <section className="info-block">
-              <h3>Popularidad</h3>
-              <div className="popularity-panel">
-                <div className="pop-number">🔥 {anime.popularity.toLocaleString()} <span className="pop-label">usuarios en listas</span></div>
-                <div className="pop-bar-bg">
-                  <div className="pop-bar-fill" style={{ width: `${Math.min((anime.popularity / 2000000) * 100, 100).toFixed(1)}%` }} />
-                </div>
-                <div className="pop-stats-row">
-                  <div className="pop-stat">
-                    <span className="pop-stat-label">Puntuación media</span>
-                    <span className="pop-stat-val score-cyan">{anime.averageScore}%</span>
-                  </div>
-                  <div className="pop-stat">
-                    <span className="pop-stat-label">Episodios</span>
-                    <span className="pop-stat-val">{anime.episodes || '—'}</span>
-                  </div>
-                  <div className="pop-stat">
-                    <span className="pop-stat-label">Duración ep.</span>
-                    <span className="pop-stat-val">{anime.duration ? `${anime.duration} min` : '—'}</span>
-                  </div>
-                  <div className="pop-stat">
-                    <span className="pop-stat-label">Estado</span>
-                    <span className="pop-stat-val">{translateStatus(anime.status)}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* PANEL: ESTUDIO + ANIMES DEL MISMO ESTUDIO */}
-            {anime.studios?.nodes?.length > 0 && (
-              <section className="info-block">
-                <h3>Estudio</h3>
-                <div className="studio-panel">
-                  <div className="studio-header-row">
-                    <span className="studio-badge">{anime.studios.nodes[0].name}</span>
-                    <input
-                      className="studio-search-input"
-                      placeholder="Comparar con otro anime..."
-                      value={compareQuery}
-                      onChange={e => setCompareQuery(e.target.value)}
-                    />
-                  </div>
-                  {studioAnimes.length > 0 && (
-                    <>
-                      <p className="studio-sub">Otros animes de {anime.studios.nodes[0].name}</p>
-                      <div className="studio-animes-grid">
-                        {studioAnimes
-                          .filter((a: any) => !compareQuery || (a.title?.english || a.title?.romaji || '').toLowerCase().includes(compareQuery.toLowerCase()))
-                          .slice(0, 6)
-                          .map((a: any) => {
-                            const aTitle = a.title?.english || a.title?.romaji;
-                            const aSlug = aTitle?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
-                            return (
-                              <Link key={a.id} href={`/dashboard/anime/${a.id}-${aSlug}`} className="studio-anime-card">
-                                <div className="studio-anime-img">
-                                  {a.coverImage && <Image src={a.coverImage.extraLarge || a.coverImage.large || a.coverImage} alt={aTitle} fill />}
-                                </div>
-                                <div className="studio-anime-info">
-                                  <p className="studio-anime-title">{aTitle}</p>
-                                  <span className="studio-anime-score">⭐ {a.averageScore || '—'}%</span>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* PANEL: ENLACES EXTERNOS */}
-            {anime.externalLinks?.length > 0 && (
-              <section className="info-block">
-                <h3>Ver en</h3>
-                <div className="ext-links-rich">
-                  {anime.externalLinks.map((link: any) => (
-                    <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="ext-link-rich">
-                      <span className="ext-link-icon">🔗</span>
-                      <span className="ext-link-site">{link.site}</span>
-                      <span className="ext-link-arrow">↗</span>
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-
+               
+               {anime.recommendations?.length > 0 && (
+                 <section className="info-block">
+                   <h3>Recomendaciones</h3>
+                   <div className="recommendations-grid-layout">
+                     {anime.recommendations.slice(0, 6).map((rec: any) => (
+                       <Link key={rec.id} href={`/dashboard/anime/${rec.id}`} className="rec-box">
+                         <div className="rec-box-img"><Image src={rec.coverImage.large} alt={rec.title.romaji} fill /></div>
+                         <p className="rec-box-title">{rec.title.english || rec.title.romaji}</p>
+                       </Link>
+                     ))}
+                   </div>
+                 </section>
+               )}
              </div>
            )}
 
@@ -657,9 +526,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .manga-dot-available { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); flex-shrink: 0; }
  
          /* GRID LAYOUT */
-         .page-grid-layout { display: grid; grid-template-columns: 280px 1fr; gap: 50px; padding: 40px 5%; min-width: 0; }
-         .page-grid-layout > aside { min-width: 0; }
-         .page-grid-layout > main { min-width: 0; overflow: hidden; }
+         .page-grid-layout { display: grid; grid-template-columns: 280px 1fr; gap: 50px; padding: 40px 5%; }
  
          /* SIDEBAR */
          .meta-glass-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 100px; }
@@ -680,10 +547,9 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .btn-sync-force:hover { background: #00E5FF; color: #000; border-color: #00E5FF; transform: scale(1.02); }
  
          /* MAIN CONTENT */
-         .anime-main-content { min-width: 0; overflow: hidden; }
          .info-block { margin-bottom: 60px; }
          .info-block h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 25px; border-left: 4px solid #00E5FF; padding-left: 15px; }
-         .description-text { color: #aaa; line-height: 1.85; font-size: 1rem; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; max-width: 100%; min-width: 0; }
+         .description-text { color: #aaa; line-height: 1.8; font-size: 1.05rem; }
          .description-text :global(br) { margin-bottom: 15px; display: block; content: ""; }
  
          .relations-horizontal { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; scrollbar-width: none; }
@@ -703,55 +569,6 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .rec-box:hover { transform: scale(1.03); }
          .rec-box-img { aspect-ratio: 2/3; position: relative; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
          .rec-box-title { font-size: 0.85rem; font-weight: 700; color: #fff; text-align: center; }
-
-         /* TAGS RICH PANEL */
-         .tags-rich-grid { display: flex; flex-direction: column; gap: 8px; }
-         .tag-rich-pill { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px; text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
-         .tag-rich-pill:hover { background: rgba(0,229,255,0.06); border-color: rgba(0,229,255,0.3); transform: translateX(4px); }
-         .tag-rich-name { font-size: 0.85rem; font-weight: 700; color: #ddd; flex: 1; }
-         .tag-rich-bar-wrap { flex: 2; height: 4px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
-         .tag-rich-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, #00E5FF, #a855f7); border-radius: 4px; transition: width 0.6s ease; }
-         .tag-rich-pct { font-size: 0.75rem; font-weight: 900; color: #00E5FF; width: 36px; text-align: right; }
-
-         /* POPULARITY PANEL */
-         .popularity-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; }
-         .pop-number { font-size: 1.8rem; font-weight: 900; color: #fff; margin-bottom: 14px; }
-         .pop-label { font-size: 0.8rem; font-weight: 600; color: #666; margin-left: 8px; }
-         .pop-bar-bg { height: 8px; background: rgba(255,255,255,0.07); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
-         .pop-bar-fill { height: 100%; background: linear-gradient(90deg, #00E5FF, #a855f7, #ec4899); border-radius: 8px; transition: width 1s ease; }
-         .pop-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-         .pop-stat { display: flex; flex-direction: column; gap: 4px; }
-         .pop-stat-label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
-         .pop-stat-val { font-size: 1.1rem; font-weight: 900; color: #ddd; }
-         .score-cyan { color: #00E5FF; }
-
-         /* STUDIO PANEL */
-         .studio-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; }
-         .studio-header-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-         .studio-badge { background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3); color: #00E5FF; padding: 8px 20px; border-radius: 30px; font-weight: 900; font-size: 1rem; white-space: nowrap; }
-         .studio-search-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 16px; color: #fff; font-size: 0.9rem; outline: none; transition: border-color 0.2s; min-width: 180px; }
-         .studio-search-input:focus { border-color: #00E5FF; }
-         .studio-search-input::placeholder { color: #555; }
-         .studio-sub { font-size: 0.78rem; color: #555; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 16px; }
-         .studio-animes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-         .studio-anime-card { display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: transform 0.2s; }
-         .studio-anime-card:hover { transform: translateY(-4px); }
-         .studio-anime-img { aspect-ratio: 2/3; position: relative; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
-         .studio-anime-img :global(img) { object-fit: cover; }
-         .studio-anime-info { padding: 8px 4px 0; }
-         .studio-anime-title { font-size: 0.8rem; font-weight: 700; color: #ddd; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-         .studio-anime-score { font-size: 0.72rem; color: #888; font-weight: 700; }
-
-         /* EXTERNAL LINKS RICH */
-         .ext-links-rich { display: flex; flex-wrap: wrap; gap: 12px; }
-         .ext-link-rich { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 18px; text-decoration: none; color: #ddd; font-weight: 700; font-size: 0.9rem; transition: all 0.2s; }
-         .ext-link-rich:hover { background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.35); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,229,255,0.1); }
-         .ext-link-icon { font-size: 1rem; }
-         .ext-link-site { flex: 1; }
-         .ext-link-arrow { font-size: 0.8rem; color: #555; transition: color 0.2s; }
-         .ext-link-rich:hover .ext-link-arrow { color: #00E5FF; }
-
-
  
          /* CHARACTERS DUAL TAB */
          .characters-dual-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; }
