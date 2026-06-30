@@ -34,12 +34,21 @@ export default function SearchPage() {
   
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const [query, setQuery] = useState(searchParams.get('query') || '');
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(searchParams.get('genres')?.split(',').filter(Boolean) || []);
-  const [year, setYear] = useState(searchParams.get('year') || '');
-  const [season, setSeason] = useState(searchParams.get('season') || '');
-  const [status, setStatus] = useState(searchParams.get('status') || '');
-  const [format, setFormat] = useState(searchParams.get('format') || '');
+  // Estados temporales del cajón de filtros (solo se aplican al presionar "Ver Resultados")
+  const [tempQuery, setTempQuery] = useState(searchParams.get('query') || '');
+  const [tempSelectedGenres, setTempSelectedGenres] = useState<string[]>(searchParams.get('genres')?.split(',').filter(Boolean) || []);
+  const [tempYear, setTempYear] = useState(searchParams.get('year') || '');
+  const [tempSeason, setTempSeason] = useState(searchParams.get('season') || '');
+  const [tempStatus, setTempStatus] = useState(searchParams.get('status') || '');
+  const [tempFormat, setTempFormat] = useState(searchParams.get('format') || '');
+
+  // Estados reales aplicados a la búsqueda
+  const [appliedQuery, setAppliedQuery] = useState(searchParams.get('query') || '');
+  const [appliedGenres, setAppliedGenres] = useState<string[]>(searchParams.get('genres')?.split(',').filter(Boolean) || []);
+  const [appliedYear, setAppliedYear] = useState(searchParams.get('year') || '');
+  const [appliedSeason, setAppliedSeason] = useState(searchParams.get('season') || '');
+  const [appliedStatus, setAppliedStatus] = useState(searchParams.get('status') || '');
+  const [appliedFormat, setAppliedFormat] = useState(searchParams.get('format') || '');
 
   const lastAnimeElementRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -61,9 +70,9 @@ export default function SearchPage() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
     try {
-      if (pageNum === 1 && query) {
+      if (pageNum === 1 && appliedQuery) {
         try {
-          const resUser = await fetch(`${apiUrl}/search/global?q=${encodeURIComponent(query)}`);
+          const resUser = await fetch(`${apiUrl}/search/global?q=${encodeURIComponent(appliedQuery)}`);
           const globalData = await resUser.json();
           if (globalData.success) {
             setUsers(globalData.data.users || []);
@@ -72,18 +81,18 @@ export default function SearchPage() {
             }
           }
         } catch (err) { console.error(err); }
-      } else if (!query) {
+      } else if (!appliedQuery) {
         setUsers([]);
       }
 
       if (searchMode === 'anime') {
         const params = new URLSearchParams();
-        if (query) params.append('query', query);
-        if (selectedGenres.length > 0) params.append('genres', selectedGenres.join(','));
-        if (year) params.append('year', year);
-        if (season) params.append('season', season);
-        if (status) params.append('status', status);
-        if (format) params.append('format', format);
+        if (appliedQuery) params.append('query', appliedQuery);
+        if (appliedGenres.length > 0) params.append('genres', appliedGenres.join(','));
+        if (appliedYear) params.append('year', appliedYear);
+        if (appliedSeason) params.append('season', appliedSeason);
+        if (appliedStatus) params.append('status', appliedStatus);
+        if (appliedFormat) params.append('format', appliedFormat);
         params.append('page', pageNum.toString());
         params.append('perPage', '50');
 
@@ -103,9 +112,9 @@ export default function SearchPage() {
           });
         } else { setHasMore(false); }
       } else {
-        if (query) {
+        if (appliedQuery) {
           const offset = (pageNum - 1) * 20;
-          const res = await fetch(`${apiUrl}/manga/search?q=${encodeURIComponent(query)}&limit=20&offset=${offset}`);
+          const res = await fetch(`${apiUrl}/manga/search?q=${encodeURIComponent(appliedQuery)}&limit=20&offset=${offset}`);
           const json = await res.json();
           
           if (json.success) {
@@ -134,17 +143,16 @@ export default function SearchPage() {
     }
   };
 
+  // Se ejecuta la búsqueda al cambiar query o modo (pero mapeado a appliedQuery)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimes([]);
-      setMangas([]);
-      setPage(1);
-      setHasMore(true);
-      fetchResults(1, true);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [query, searchMode]);
+    setAnimes([]);
+    setMangas([]);
+    setPage(1);
+    setHasMore(true);
+    fetchResults(1, true);
+  }, [appliedQuery, searchMode]);
 
+  // Se ejecuta la búsqueda cuando los filtros aplicados cambian
   useEffect(() => {
     setAnimes([]);
     setMangas([]);
@@ -153,24 +161,34 @@ export default function SearchPage() {
     fetchResults(1, true);
     
     const params = new URLSearchParams();
-    if (query) params.append('query', query);
-    if (selectedGenres.length > 0) params.append('genres', selectedGenres.join(','));
-    if (year) params.append('year', year);
-    if (season) params.append('season', season);
-    if (status) params.append('status', status);
-    if (format) params.append('format', format);
+    if (appliedQuery) params.append('query', appliedQuery);
+    if (appliedGenres.length > 0) params.append('genres', appliedGenres.join(','));
+    if (appliedYear) params.append('year', appliedYear);
+    if (appliedSeason) params.append('season', appliedSeason);
+    if (appliedStatus) params.append('status', appliedStatus);
+    if (appliedFormat) params.append('format', appliedFormat);
     router.replace(`/dashboard/search?${params.toString()}`, { scroll: false });
-  }, [selectedGenres, year, season, status, format]);
+  }, [appliedGenres, appliedYear, appliedSeason, appliedStatus, appliedFormat]);
 
   useEffect(() => {
     if (page > 1) fetchResults(page);
   }, [page]);
 
   const toggleGenre = (genre: string) => {
-    setSelectedGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
+    setTempSelectedGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
   };
 
-  const activeFiltersCount = selectedGenres.length + (year ? 1 : 0) + (season ? 1 : 0) + (status ? 1 : 0) + (format ? 1 : 0);
+  const handleApplyFilters = () => {
+    setAppliedQuery(tempQuery);
+    setAppliedGenres(tempSelectedGenres);
+    setAppliedYear(tempYear);
+    setAppliedSeason(tempSeason);
+    setAppliedStatus(tempStatus);
+    setAppliedFormat(tempFormat);
+    setShowFilters(false);
+  };
+
+  const activeFiltersCount = appliedGenres.length + (appliedYear ? 1 : 0) + (appliedSeason ? 1 : 0) + (appliedStatus ? 1 : 0) + (appliedFormat ? 1 : 0);
 
   return (
     <div className="search-page">
@@ -178,7 +196,18 @@ export default function SearchPage() {
       <div className="explore-trigger-bar">
         <button 
           className={`explore-toggle-btn ${showFilters ? 'active' : ''}`}
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={() => {
+            // Sincronizar temporales con los aplicados actuales al abrir
+            if (!showFilters) {
+              setTempQuery(appliedQuery);
+              setTempSelectedGenres(appliedGenres);
+              setTempYear(appliedYear);
+              setTempSeason(appliedSeason);
+              setTempStatus(appliedStatus);
+              setTempFormat(appliedFormat);
+            }
+            setShowFilters(!showFilters);
+          }}
         >
           <Compass className="icon-explore" size={18} />
           <span>Explorar Multiverso</span>
@@ -208,8 +237,8 @@ export default function SearchPage() {
               <input 
                 type="text" 
                 placeholder={searchMode === 'anime' ? "Buscar anime..." : "Buscar manga..."} 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={tempQuery}
+                onChange={(e) => setTempQuery(e.target.value)}
               />
             </div>
           </div>
@@ -222,7 +251,7 @@ export default function SearchPage() {
                   {GENRES.map(g => (
                     <button 
                       key={g} 
-                      className={selectedGenres.includes(g) ? 'active' : ''}
+                      className={tempSelectedGenres.includes(g) ? 'active' : ''}
                       onClick={() => toggleGenre(g)}
                     >
                       {g}
@@ -234,14 +263,14 @@ export default function SearchPage() {
               <div className="filter-row">
                 <div className="filter-item">
                   <h4>Año</h4>
-                  <select value={year} onChange={(e) => setYear(e.target.value)}>
+                  <select value={tempYear} onChange={(e) => setTempYear(e.target.value)}>
                     <option value="">Todos</option>
                     {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
                 <div className="filter-item">
                   <h4>Temporada</h4>
-                  <select value={season} onChange={(e) => setSeason(e.target.value)}>
+                  <select value={tempSeason} onChange={(e) => setTempSeason(e.target.value)}>
                     <option value="">Todas</option>
                     {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -251,14 +280,14 @@ export default function SearchPage() {
               <div className="filter-row">
                 <div className="filter-item">
                   <h4>Estado</h4>
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
                     <option value="">Todos</option>
                     {STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                   </select>
                 </div>
                 <div className="filter-item">
                   <h4>Formato</h4>
-                  <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                  <select value={tempFormat} onChange={(e) => setTempFormat(e.target.value)}>
                     <option value="">Todos</option>
                     {FORMATS.map(f => <option key={f} value={f}>{f.replace('_', ' ')}</option>)}
                   </select>
@@ -275,16 +304,16 @@ export default function SearchPage() {
 
           <div className="drawer-actions">
             <button className="reset-btn" onClick={() => {
-              setQuery('');
-              setSelectedGenres([]);
-              setYear('');
-              setSeason('');
-              setStatus('');
-              setFormat('');
+              setTempQuery('');
+              setTempSelectedGenres([]);
+              setTempYear('');
+              setTempSeason('');
+              setTempStatus('');
+              setTempFormat('');
             }}>
               Reiniciar Multiverso
             </button>
-            <button className="apply-btn" onClick={() => setShowFilters(false)}>
+            <button className="apply-btn" onClick={handleApplyFilters}>
               Ver Resultados
             </button>
           </div>
@@ -396,10 +425,13 @@ export default function SearchPage() {
             <div className="no-results-content">
                <span className="icon">🌌</span>
                <h3>No hay coincidencias en esta línea temporal</h3>
-               {searchMode === 'manga' && !query && <p>Ingresa un término de búsqueda para buscar mangas en MangaDex.</p>}
-               {searchMode === 'manga' && query && <p>MangaDex no encontró mangas que coincidan con tu búsqueda.</p>}
+               {searchMode === 'manga' && !appliedQuery && <p>Ingresa un término de búsqueda para buscar mangas en MangaDex.</p>}
+               {searchMode === 'manga' && appliedQuery && <p>MangaDex no encontró mangas que coincidan con tu búsqueda.</p>}
                {searchMode === 'anime' && <p>Intenta ampliar tus criterios o reinicia los filtros.</p>}
-               <button onClick={() => setQuery('')}>Limpiar Búsqueda</button>
+               <button onClick={() => {
+                 setTempQuery('');
+                 setAppliedQuery('');
+               }}>Limpiar Búsqueda</button>
             </div>
           </div>
         )}
