@@ -442,6 +442,9 @@ export const TopNavbar: React.FC = () => {
                         <span className={styles.dIcon} aria-hidden="true">🛡️</span> Panel Admin
                       </Link>
                     )}
+                    <Link href="/dashboard/manual" className={styles.dropdownItem} onClick={() => setShowDropdown(false)} role="menuitem">
+                      <span className={styles.dIcon} aria-hidden="true">📖</span> Manual Sistema
+                    </Link>
                     <Link href="/dashboard/settings" className={styles.dropdownItem} onClick={() => setShowDropdown(false)} role="menuitem">
                       <span className={styles.dIcon} aria-hidden="true">⚙️</span> Ajustes
                     </Link>
