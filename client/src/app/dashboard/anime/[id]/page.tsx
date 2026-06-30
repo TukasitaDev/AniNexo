@@ -546,7 +546,9 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .manga-dot-available { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); flex-shrink: 0; }
  
          /* GRID LAYOUT */
-         .page-grid-layout { display: grid; grid-template-columns: 280px 1fr; gap: 50px; padding: 40px 5%; }
+         .page-grid-layout { display: grid; grid-template-columns: 280px 1fr; gap: 50px; padding: 40px 5%; min-width: 0; }
+         .page-grid-layout > aside { min-width: 0; }
+         .page-grid-layout > main { min-width: 0; overflow: hidden; }
  
          /* SIDEBAR */
          .meta-glass-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 100px; }
@@ -567,9 +569,10 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .btn-sync-force:hover { background: #00E5FF; color: #000; border-color: #00E5FF; transform: scale(1.02); }
  
          /* MAIN CONTENT */
+         .anime-main-content { min-width: 0; overflow: hidden; }
          .info-block { margin-bottom: 60px; }
          .info-block h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 25px; border-left: 4px solid #00E5FF; padding-left: 15px; }
-         .description-text { color: #aaa; line-height: 1.85; font-size: 1rem; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; max-width: 100%; }
+         .description-text { color: #aaa; line-height: 1.85; font-size: 1rem; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; max-width: 100%; min-width: 0; }
          .description-text :global(br) { margin-bottom: 15px; display: block; content: ""; }
  
          .relations-horizontal { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; scrollbar-width: none; }
