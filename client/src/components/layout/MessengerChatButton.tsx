@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FriendsModal } from '../profile/FriendsModal';
+import { ChatWindow } from '../profile/ChatWindow';
 
 export const MessengerChatButton: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -9,17 +10,21 @@ export const MessengerChatButton: React.FC = () => {
   const [isPulsing, setIsPulsing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Chat state — lifted from FriendsModal
+  const [activeChatFriend, setActiveChatFriend] = useState<any>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
   useEffect(() => {
     const u = localStorage.getItem('user');
     if (u) {
-      try {
-        const parsed = JSON.parse(u);
-        setUser(parsed);
-      } catch {}
+      try { setUser(JSON.parse(u)); } catch {}
     }
   }, []);
 
-  // Pulse effect every 30s to draw attention
+  // Pulse every 30s when closed
   useEffect(() => {
     const timer = setInterval(() => {
       if (!isOpen) {
@@ -30,24 +35,92 @@ export const MessengerChatButton: React.FC = () => {
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Click outside to close
+  // Click outside to close everything
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as HTMLElement)) {
         setIsOpen(false);
+        setActiveChatFriend(null);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const handleStartChat = (friend: any, convId: string, messages: any[]) => {
+    setActiveChatFriend(friend);
+    setConversationId(convId);
+    setChatMessages(messages);
+    setChatInput('');
+  };
+
+  const handleCloseChat = () => {
+    setActiveChatFriend(null);
+    setConversationId(null);
+    setChatMessages([]);
+    setChatInput('');
+  };
+
+  const handleSendMessage = async (content: string, type: string = 'text') => {
+    if (!content.trim() || !conversationId || !user?.id) return;
+    setIsSending(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/messaging/message`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ conversationId, senderId: user.id, content: content.trim() }),
+        }
+      );
+      if (res.ok) {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            id: Date.now(),
+            content,
+            type,
+            senderId: user.id,
+            createdAt: new Date().toISOString(),
+            sender: { username: user.username, avatarUrl: user.avatarUrl },
+          },
+        ]);
+        setChatInput('');
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
-    <div ref={containerRef} className={`msgr-root ${isOpen ? 'msgr-open' : ''}`}>
-      {/* Floating Panel */}
+    <div ref={containerRef} className="msgr-root">
+      {/* ===== Chat window — to the LEFT of the friends panel ===== */}
+      {activeChatFriend && (
+        <div className="msgr-chat-slot">
+          <ChatWindow
+            profile={activeChatFriend}
+            currentUser={user}
+            conversationId={conversationId}
+            chatMessages={chatMessages}
+            chatInput={chatInput}
+            isConnected={!!conversationId}
+            isSending={isSending}
+            setChatInput={setChatInput}
+            onSendMessage={handleSendMessage}
+            onClose={handleCloseChat}
+          />
+        </div>
+      )}
+
+      {/* ===== Friends panel — always shows when isOpen ===== */}
       {isOpen && (
         <div className="msgr-panel">
+          {/* Panel header */}
           <div className="msgr-panel-header">
             <div className="msgr-panel-header-left">
               <div className="msgr-avatar-sm">
@@ -62,55 +135,55 @@ export const MessengerChatButton: React.FC = () => {
                 <p className="msgr-panel-sub">@{user.username}</p>
               </div>
             </div>
-            <div className="msgr-panel-header-actions">
-              <button className="msgr-header-btn" title="Editar" aria-label="Editar mensaje">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button className="msgr-header-btn" title="Cerrar" aria-label="Cerrar panel" onClick={() => setIsOpen(false)}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
+            <button
+              className="msgr-header-btn"
+              title="Minimizar"
+              aria-label="Cerrar panel"
+              onClick={() => { setIsOpen(false); setActiveChatFriend(null); }}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
 
+          {/* Friends list */}
           <div className="msgr-panel-body">
             <FriendsModal
               userId={user.id}
               onClose={() => setIsOpen(false)}
               currentUser={user}
               isDropdown={true}
+              onStartChat={handleStartChat}
             />
           </div>
         </div>
       )}
 
-      {/* Messenger FAB */}
+      {/* ===== Floating Action Button ===== */}
       <button
         className={`msgr-fab ${isPulsing ? 'msgr-fab-pulse' : ''} ${isOpen ? 'msgr-fab-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(o => !o);
+          if (isOpen) setActiveChatFriend(null);
+        }}
         aria-label="Abrir chats de amigos"
         title="Chats de amigos"
       >
         {isOpen ? (
-          /* Down chevron when open */
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="white">
-            <path d="M19 9l-7 7-7-7" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 9l-7 7-7-7" />
           </svg>
         ) : (
-          /* Messenger logo icon */
           <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
             <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.9 1.15 5.56 3.2 7.42.16.15.26.37.26.6l-.08 2.2a.8.8 0 0 0 1.15.75l2.48-1.37c.18-.1.4-.1.6-.04 1.16.32 2.37.49 3.6.49 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm1.18 11.23-2.02-2.15-3.95 2.15c-.42.23-.92-.25-.7-.7l2.02-4.32a.8.8 0 0 1 1.09-.43l2.02 2.15 3.95-2.15c.42-.23.92-.25.7.7l-2.02 4.32a.8.8 0 0 1-1.09-.43z" />
           </svg>
         )}
-        {/* Glow ring animation when closed */}
         {!isOpen && <span className="msgr-fab-ring" />}
       </button>
 
       <style jsx>{`
-        /* ===== ROOT ===== */
+        /* ===== ROOT — fixed bottom-right anchor ===== */
         .msgr-root {
           position: fixed;
           bottom: 28px;
@@ -119,36 +192,51 @@ export const MessengerChatButton: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 12px;
+          gap: 10px;
           pointer-events: none;
         }
-        .msgr-root > * {
-          pointer-events: all;
+        .msgr-root > * { pointer-events: all; }
+
+        /* ===== CHAT + PANEL row — side by side ===== */
+        .msgr-chat-slot {
+          /* ChatWindow sits to the left of the panel in the horizontal layout */
+          order: -2;
         }
 
-        /* ===== PANEL ===== */
+        /* When chat is open, arrange the whole row horizontally */
+        .msgr-root {
+          flex-direction: row;
+          align-items: flex-end;
+          flex-wrap: nowrap;
+        }
+
+        /* FAB always last */
+        .msgr-fab { order: 10; }
+        .msgr-panel { order: 5; }
+        .msgr-chat-slot { order: 1; }
+
+        /* ===== FRIENDS PANEL ===== */
         .msgr-panel {
-          width: 360px;
-          max-height: 520px;
-          background: rgba(10, 10, 14, 0.97);
+          width: 340px;
+          max-height: 490px;
+          background: rgba(8, 8, 14, 0.97);
           backdrop-filter: blur(30px);
           -webkit-backdrop-filter: blur(30px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255,255,255,0.07);
           border-radius: 20px;
           overflow: hidden;
           box-shadow:
-            0 30px 70px rgba(0, 0, 0, 0.7),
-            0 0 0 0.5px rgba(255, 255, 255, 0.06),
-            0 0 40px rgba(0, 120, 255, 0.06);
+            0 30px 70px rgba(0,0,0,0.7),
+            0 0 0 0.5px rgba(255,255,255,0.05),
+            0 0 40px rgba(8,102,255,0.06);
           display: flex;
           flex-direction: column;
-          animation: panelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation: panelIn 0.32s cubic-bezier(0.16,1,0.3,1) both;
           transform-origin: bottom right;
         }
-
         @keyframes panelIn {
-          from { opacity: 0; transform: scale(0.85) translateY(16px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
+          from { opacity:0; transform: scale(0.88) translateY(14px); }
+          to   { opacity:1; transform: scale(1) translateY(0); }
         }
 
         /* ===== PANEL HEADER ===== */
@@ -156,227 +244,107 @@ export const MessengerChatButton: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 18px 14px;
+          padding: 14px 16px 12px;
           background: linear-gradient(135deg, #0866ff 0%, #0099ff 50%, #5f00ff 100%);
           flex-shrink: 0;
         }
-
         .msgr-panel-header-left {
           display: flex;
           align-items: center;
           gap: 10px;
         }
-
         .msgr-avatar-sm {
-          width: 40px;
-          height: 40px;
+          width: 38px; height: 38px;
           border-radius: 50%;
           position: relative;
           background: rgba(255,255,255,0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           overflow: visible;
           flex-shrink: 0;
           border: 2px solid rgba(255,255,255,0.4);
         }
-
         .msgr-avatar-sm img {
-          width: 100%;
-          height: 100%;
+          width: 100%; height: 100%;
           object-fit: cover;
           border-radius: 50%;
         }
-
-        .msgr-avatar-sm span {
-          color: white;
-          font-weight: 900;
-          font-size: 1rem;
-        }
-
+        .msgr-avatar-sm span { color:white; font-weight:900; font-size:0.95rem; }
         .msgr-online-dot {
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 11px;
-          height: 11px;
-          background: #31a24c;
-          border-radius: 50%;
+          position: absolute; bottom:0; right:0;
+          width: 10px; height: 10px;
+          background: #31a24c; border-radius: 50%;
           border: 2px solid #0866ff;
-          box-shadow: 0 0 6px rgba(49, 162, 76, 0.8);
+          box-shadow: 0 0 5px rgba(49,162,76,0.8);
         }
-
-        .msgr-panel-title {
-          font-size: 1rem;
-          font-weight: 800;
-          color: white;
-          margin: 0;
-          letter-spacing: -0.2px;
-        }
-
-        .msgr-panel-sub {
-          font-size: 0.72rem;
-          color: rgba(255, 255, 255, 0.7);
-          margin: 0;
-        }
-
-        .msgr-panel-header-actions {
-          display: flex;
-          gap: 4px;
-        }
-
+        .msgr-panel-title { font-size:0.95rem; font-weight:800; color:white; margin:0; }
+        .msgr-panel-sub { font-size:0.7rem; color:rgba(255,255,255,0.7); margin:0; }
         .msgr-header-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px; height: 32px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.15);
-          border: none;
-          color: white;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          background: rgba(255,255,255,0.15);
+          border: none; color: white; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
           transition: background 0.2s;
-          backdrop-filter: blur(5px);
         }
+        .msgr-header-btn:hover { background: rgba(255,255,255,0.28); }
 
-        .msgr-header-btn:hover {
-          background: rgba(255, 255, 255, 0.25);
-        }
-
-        /* ===== PANEL BODY ===== */
+        /* ===== PANEL BODY (FriendsModal) ===== */
         .msgr-panel-body {
           flex: 1;
           overflow: hidden;
           min-height: 0;
         }
 
-        /* Override FriendsModal dropdown styles within the panel */
-        .msgr-panel-body :global(.dropdown-overlay) {
-          position: static !important;
-          transform: none !important;
-          width: 100% !important;
-          animation: none !important;
-          display: flex !important;
-        }
-
-        .msgr-panel-body :global(.dropdown-content) {
-          width: 100% !important;
-          max-height: 400px !important;
-          border-radius: 0 !important;
-          border: none !important;
-          background: transparent !important;
-          box-shadow: none !important;
-          animation: none !important;
-        }
-
-        .msgr-panel-body :global(.modal-header) {
-          display: none !important;
-        }
-
-        .msgr-panel-body :global(.friends-list) {
-          padding: 12px !important;
-          max-height: 400px !important;
-          overflow-y: auto !important;
-        }
-
-        .msgr-panel-body :global(.friend-item) {
-          border-radius: 12px !important;
-          transition: background 0.15s !important;
-        }
-
-        .msgr-panel-body :global(.friend-item:hover) {
-          background: rgba(255,255,255,0.06) !important;
-        }
-
-        .msgr-panel-body :global(.friend-avatar) {
-          border: 2px solid rgba(255,255,255,0.1) !important;
-        }
-
-        .msgr-panel-body :global(.btn-icon) {
-          color: rgba(255,255,255,0.4) !important;
-        }
-
-        .msgr-panel-body :global(.btn-icon:hover) {
-          background: rgba(8, 102, 255, 0.15) !important;
-          color: #0099ff !important;
-        }
-
-        .msgr-panel-body :global(.empty-message),
-        .msgr-panel-body :global(.loading) {
-          padding: 50px 20px !important;
-          color: rgba(255,255,255,0.4) !important;
-          text-align: center !important;
-        }
-
-        /* ===== FAB BUTTON ===== */
+        /* ===== FAB ===== */
         .msgr-fab {
-          width: 60px;
-          height: 60px;
+          width: 58px; height: 58px;
           border-radius: 50%;
           border: none;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           position: relative;
           background: linear-gradient(135deg, #0866ff 0%, #0099ff 50%, #5f00ff 100%);
           box-shadow:
-            0 6px 24px rgba(8, 102, 255, 0.55),
-            0 2px 8px rgba(0, 0, 0, 0.4),
-            0 0 0 0 rgba(8, 102, 255, 0);
-          transition:
-            transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-            box-shadow 0.25s ease;
-          animation: fabAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            0 6px 22px rgba(8,102,255,0.55),
+            0 2px 8px rgba(0,0,0,0.4);
+          transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+          animation: fabAppear 0.4s cubic-bezier(0.16,1,0.3,1) both;
+          flex-shrink: 0;
         }
-
         @keyframes fabAppear {
-          from { opacity: 0; transform: scale(0) rotate(-90deg); }
-          to   { opacity: 1; transform: scale(1) rotate(0deg); }
+          from { opacity:0; transform: scale(0) rotate(-90deg); }
+          to   { opacity:1; transform: scale(1) rotate(0deg); }
         }
-
         .msgr-fab:hover {
           transform: scale(1.1);
-          box-shadow:
-            0 8px 32px rgba(8, 102, 255, 0.7),
-            0 2px 12px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 8px 30px rgba(8,102,255,0.7), 0 2px 12px rgba(0,0,0,0.5);
         }
-
-        .msgr-fab:active {
-          transform: scale(0.96);
-        }
-
+        .msgr-fab:active { transform: scale(0.95); }
         .msgr-fab-active {
           background: linear-gradient(135deg, #0866ff, #5f00ff);
-          box-shadow:
-            0 6px 24px rgba(95, 0, 255, 0.55),
-            0 0 0 3px rgba(8, 102, 255, 0.25);
+          box-shadow: 0 6px 22px rgba(95,0,255,0.5), 0 0 0 3px rgba(8,102,255,0.2);
         }
 
-        /* ===== RING PULSE ===== */
+        /* Breathing ring */
         .msgr-fab-ring {
-          position: absolute;
-          inset: -3px;
+          position: absolute; inset: -3px;
           border-radius: 50%;
-          border: 2px solid rgba(8, 102, 255, 0.4);
+          border: 2px solid rgba(8,102,255,0.4);
           animation: ringBreath 3s ease-in-out infinite;
         }
-
         @keyframes ringBreath {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50%       { transform: scale(1.12); opacity: 0.15; }
+          0%,100% { transform:scale(1); opacity:0.5; }
+          50%      { transform:scale(1.12); opacity:0.15; }
         }
 
-        /* ===== ATTENTION PULSE ===== */
+        /* Pulse attention */
         .msgr-fab-pulse {
           animation: fabPulse 0.6s ease-out 3;
         }
-
         @keyframes fabPulse {
-          0%   { box-shadow: 0 6px 24px rgba(8, 102, 255, 0.55), 0 0 0 0 rgba(8, 102, 255, 0.6); }
-          50%  { box-shadow: 0 6px 24px rgba(8, 102, 255, 0.55), 0 0 0 16px rgba(8, 102, 255, 0); }
-          100% { box-shadow: 0 6px 24px rgba(8, 102, 255, 0.55), 0 0 0 0 rgba(8, 102, 255, 0); }
+          0%   { box-shadow: 0 6px 22px rgba(8,102,255,0.55), 0 0 0 0 rgba(8,102,255,0.6); }
+          50%  { box-shadow: 0 6px 22px rgba(8,102,255,0.55), 0 0 0 16px rgba(8,102,255,0); }
+          100% { box-shadow: 0 6px 22px rgba(8,102,255,0.55), 0 0 0 0 rgba(8,102,255,0); }
         }
       `}</style>
     </div>
