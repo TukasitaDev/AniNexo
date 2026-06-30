@@ -26,6 +26,10 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
   const [addingToCollection, setAddingToCollection] = useState(false);
   const [mangaId, setMangaId] = useState<string | null>(null);
   const [checkingManga, setCheckingManga] = useState(true);
+  const [compareSearchQuery, setCompareSearchQuery] = useState('');
+  const [compareResults, setCompareResults] = useState<any[]>([]);
+  const [comparingAnime, setComparingAnime] = useState<any | null>(null);
+  const [isSearchingCompare, setIsSearchingCompare] = useState(false);
 
   useEffect(() => {
     const loadData = async (force: boolean = false) => {
@@ -417,7 +421,7 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
                    </Link>
                  </div>
                ) : (
-                 <div className="manga-tab-unavailable">
+              <div className="manga-tab-unavailable">
                    <span className="manga-unavail-icon">📭</span>
                    <h3>Manga no disponible</h3>
                    <p>No encontramos un manga correspondiente a este anime en MangaDex.</p>
@@ -427,24 +431,219 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
            )}
 
            {activeTab === 'stats' && (
-             <div key="stats" className="tab-pane animate-fadeInUp animate-delay-500" data-tour="anime-stats">
-               <div className="stats-container">
-                 <section className="stat-card">
-                   <h4>Distribución de Puntuación</h4>
-                   <div className="score-bars">
-                     {anime.stats?.scoreDistribution?.map((s: any) => (
-                       <div key={s.score} className="score-row">
-                         <span className="score-label">{s.score}0%</span>
-                         <div className="score-bar-bg">
-                           <div className="score-bar-fill" style={{ width: `${(s.amount / Math.max(...anime.stats.scoreDistribution.map((x:any)=>x.amount))) * 100}%`, transition: 'width 0.3s ease' }}></div>
-                         </div>
-                         <span className="score-count">{s.amount}</span>
-                       </div>
-                     ))}
-                   </div>
-                 </section>
-               </div>
-             </div>
+              <div key="stats" className="tab-pane animate-fadeInUp animate-delay-500" data-tour="anime-stats">
+                <div className="stats-container">
+                  
+                  {/* COMPARISON SEARCH BOX */}
+                  <section className="stat-card search-compare-section">
+                    <h4>Nexo de Comparación Dimensional</h4>
+                    <p className="compare-subtitle">Busca cualquier anime de la base de datos para comparar sus estadísticas cara a cara.</p>
+                    
+                    <div className="compare-search-wrapper">
+                      <input 
+                        type="text" 
+                        placeholder="Escribe el nombre del anime a comparar..." 
+                        value={compareSearchQuery}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          setCompareSearchQuery(val);
+                          if (val.length < 2) {
+                            setCompareResults([]);
+                            return;
+                          }
+                          setIsSearchingCompare(true);
+                          try {
+                            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/search/global?q=${encodeURIComponent(val)}`);
+                            const data = await res.json();
+                            if (data.success) {
+                              setCompareResults(data.data.animes || []);
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          } finally {
+                            setIsSearchingCompare(false);
+                          }
+                        }}
+                        className="compare-input"
+                      />
+                      {isSearchingCompare && <div className="compare-spinner-mini" />}
+                    </div>
+
+                    {compareResults.length > 0 && (
+                      <div className="compare-dropdown-results">
+                        {compareResults.map((a: any) => (
+                          <div 
+                            key={a.id} 
+                            className="compare-dropdown-item"
+                            onClick={async () => {
+                              try {
+                                const details = await getAnimeDetails(a.id);
+                                setComparingAnime(details);
+                                setCompareResults([]);
+                                setCompareSearchQuery('');
+                              } catch (err) {
+                                alert('Error al cargar datos de comparación');
+                              }
+                            }}
+                          >
+                            <img src={a.coverImage} alt={a.title} className="comp-drop-img" />
+                            <div className="comp-drop-info">
+                              <p className="comp-drop-title">{a.title}</p>
+                              <p className="comp-drop-meta">{translateFormat(a.format)} • ⭐ {a.meanScore}%</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* COMPARISON BODY PANEL */}
+                  {comparingAnime ? (
+                    <div className="comparison-workspace animate-fadeInUp">
+                      
+                      {/* HEAD TO HEAD HEADER */}
+                      <div className="h2h-header">
+                        <div className="h2h-party current-party">
+                          <img src={anime.coverImage.large} alt={title} className="h2h-img" />
+                          <h5>{title}</h5>
+                        </div>
+                        <div className="h2h-vs">VS</div>
+                        <div className="h2h-party target-party">
+                          <img src={comparingAnime.coverImage?.extraLarge || comparingAnime.coverImage?.large} alt={comparingAnime.title.english || comparingAnime.title.romaji} className="h2h-img" />
+                          <h5>{comparingAnime.title.english || comparingAnime.title.romaji}</h5>
+                          <button className="btn-clear-compare" onClick={() => setComparingAnime(null)}>Quitar</button>
+                        </div>
+                      </div>
+
+                      {/* STATS METRIC GRID */}
+                      <div className="comparison-metrics-grid">
+                        
+                        {/* SCORE CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Puntuación Media</span>
+                          <div className="m-values">
+                            <span className={`m-val ${anime.averageScore >= (comparingAnime.averageScore || 0) ? 'winner-cyan' : ''}`}>
+                              {anime.averageScore}%
+                            </span>
+                            <span className={`m-val ${comparingAnime.averageScore >= anime.averageScore ? 'winner-cyan' : ''}`}>
+                              {comparingAnime.averageScore || '—'}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* POPULARITY CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Popularidad (Listas)</span>
+                          <div className="m-values">
+                            <span className={`m-val ${anime.popularity >= (comparingAnime.popularity || 0) ? 'winner-cyan' : ''}`}>
+                              🔥 {anime.popularity.toLocaleString()}
+                            </span>
+                            <span className={`m-val ${comparingAnime.popularity >= anime.popularity ? 'winner-cyan' : ''}`}>
+                              🔥 {(comparingAnime.popularity || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* EPISODES CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Episodios Totales</span>
+                          <div className="m-values">
+                            <span className="m-val">{anime.episodes || '—'}</span>
+                            <span className="m-val">{comparingAnime.episodes || '—'}</span>
+                          </div>
+                        </div>
+
+                        {/* DURATION CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Duración promedio</span>
+                          <div className="m-values">
+                            <span className="m-val">{anime.duration ? `${anime.duration} min` : '—'}</span>
+                            <span className="m-val">{comparingAnime.duration ? `${comparingAnime.duration} min` : '—'}</span>
+                          </div>
+                        </div>
+
+                        {/* STATE CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Estado actual</span>
+                          <div className="m-values text-side">
+                            <span className="m-val-text">{translateStatus(anime.status)}</span>
+                            <span className="m-val-text">{translateStatus(comparingAnime.status)}</span>
+                          </div>
+                        </div>
+
+                        {/* SOURCE CARD */}
+                        <div className="metric-compare-card">
+                          <span className="m-title">Origen</span>
+                          <div className="m-values text-side">
+                            <span className="m-val-text">{anime.source || 'Original'}</span>
+                            <span className="m-val-text">{comparingAnime.source || 'Original'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* DOUBLE SCORE DISTRIBUTION CHART */}
+                      <section className="stat-card dual-distribution-chart">
+                        <h4>Distribución de Puntuaciones Comparada</h4>
+                        <div className="dual-distribution-bars">
+                          {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(scoreIndex => {
+                            const currentAmount = anime.stats?.scoreDistribution?.find((x: any) => x.score === scoreIndex)?.amount || 0;
+                            const targetAmount = comparingAnime.stats?.scoreDistribution?.find((x: any) => x.score === scoreIndex)?.amount || 0;
+                            const maxVal = Math.max(
+                              ...(anime.stats?.scoreDistribution?.map((x: any) => x.amount) || [1]),
+                              ...(comparingAnime.stats?.scoreDistribution?.map((x: any) => x.amount) || [1])
+                            );
+
+                            return (
+                              <div key={scoreIndex} className="dual-score-row">
+                                <span className="dual-score-label">{scoreIndex}0%</span>
+                                <div className="dual-bars-wrapper">
+                                  {/* Current Anime (Cian) */}
+                                  <div className="dual-bar-bg-half">
+                                    <div 
+                                      className="dual-bar-fill current-color" 
+                                      style={{ width: `${(currentAmount / maxVal) * 100}%` }} 
+                                      title={`${title}: ${currentAmount}`}
+                                    />
+                                  </div>
+                                  {/* Target Anime (Púrpura) */}
+                                  <div className="dual-bar-bg-half">
+                                    <div 
+                                      className="dual-bar-fill target-color" 
+                                      style={{ width: `${(targetAmount / maxVal) * 100}%` }} 
+                                      title={`${comparingAnime.title.english || comparingAnime.title.romaji}: ${targetAmount}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="dual-counts">
+                                  <span className="count-c">{currentAmount}</span>
+                                  <span className="count-t">{targetAmount}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                    </div>
+                  ) : (
+                    /* FALLBACK: SINGLE DISTRIBUTION IF NO COMPARISON ACTIVE */
+                    <section className="stat-card animate-fadeInUp">
+                      <h4>Distribución de Puntuación</h4>
+                      <div className="score-bars">
+                        {anime.stats?.scoreDistribution?.map((s: any) => (
+                          <div key={s.score} className="score-row">
+                            <span className="score-label">{s.score}0%</span>
+                            <div className="score-bar-bg">
+                              <div className="score-bar-fill" style={{ width: `${(s.amount / Math.max(...anime.stats.scoreDistribution.map((x:any)=>x.amount))) * 100}%`, transition: 'width 0.3s ease' }}></div>
+                            </div>
+                            <span className="score-count">{s.amount}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              </div>
            )}
            </div>
         </main>
@@ -569,6 +768,53 @@ export default function AnimeDetailPage({ params: paramsPromise }: { params: Pro
          .rec-box:hover { transform: scale(1.03); }
          .rec-box-img { aspect-ratio: 2/3; position: relative; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
          .rec-box-title { font-size: 0.85rem; font-weight: 700; color: #fff; text-align: center; }
+
+         /* COMPARE MODE PREMIUM STYLES */
+         .search-compare-section { margin-bottom: 30px; position: relative; }
+         .compare-subtitle { font-size: 0.85rem; color: #666; margin-bottom: 20px; }
+         .compare-search-wrapper { position: relative; display: flex; align-items: center; }
+         .compare-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 20px; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+         .compare-input:focus { border-color: #00E5FF; }
+         .compare-spinner-mini { position: absolute; right: 18px; width: 16px; height: 16px; border: 2px solid rgba(0, 229, 255, 0.2); border-top-color: #00E5FF; border-radius: 50%; animation: spin 0.8s linear infinite; }
+         .compare-dropdown-results { position: absolute; left: 0; right: 0; background: rgba(10,10,12,0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-top: 8px; max-height: 250px; overflow-y: auto; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+         .compare-dropdown-item { display: flex; align-items: center; gap: 12px; padding: 12px 18px; cursor: pointer; transition: background 0.2s; }
+         .compare-dropdown-item:hover { background: rgba(0,229,255,0.08); }
+         .comp-drop-img { width: 36px; height: 50px; object-fit: cover; border-radius: 4px; }
+         .comp-drop-info { display: flex; flex-direction: column; gap: 2px; }
+         .comp-drop-title { font-size: 0.85rem; font-weight: 700; color: #fff; margin: 0; }
+         .comp-drop-meta { font-size: 0.75rem; color: #666; margin: 0; }
+
+         .comparison-workspace { display: flex; flex-direction: column; gap: 35px; }
+         .h2h-header { display: flex; align-items: center; justify-content: space-around; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; gap: 20px; }
+         .h2h-party { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; flex: 1; max-width: 250px; }
+         .h2h-img { width: 100px; height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+         .h2h-party h5 { font-size: 1rem; font-weight: 800; margin: 0; color: #fff; line-height: 1.3; }
+         .h2h-vs { font-size: 1.8rem; font-weight: 950; color: #00E5FF; text-shadow: 0 0 15px rgba(0, 229, 255, 0.4); font-style: italic; }
+         .btn-clear-compare { margin-top: 6px; padding: 4px 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 20px; font-size: 0.72rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
+         .btn-clear-compare:hover { background: #ef4444; color: #fff; }
+
+         .comparison-metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+         .metric-compare-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+         .metric-compare-card .m-title { font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+         .metric-compare-card .m-values { display: flex; justify-content: space-between; align-items: center; }
+         .metric-compare-card .m-val { font-size: 1.4rem; font-weight: 900; color: #ddd; }
+         .metric-compare-card .m-val.winner-cyan { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
+         .metric-compare-card .m-values.text-side { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+         .metric-compare-card .m-val-text { font-size: 0.95rem; font-weight: 700; color: #bbb; }
+
+         /* DUAL SCORES CHART */
+         .dual-distribution-chart { padding: 30px; }
+         .dual-distribution-bars { display: flex; flex-direction: column; gap: 14px; }
+         .dual-score-row { display: flex; align-items: center; gap: 15px; }
+         .dual-score-label { width: 45px; font-size: 0.8rem; font-weight: 800; color: #555; }
+         .dual-bars-wrapper { flex: 1; display: flex; gap: 8px; height: 12px; }
+         .dual-bar-bg-half { flex: 1; height: 100%; background: #131317; border-radius: 6px; overflow: hidden; position: relative; }
+         .dual-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+         .dual-bar-fill.current-color { background: #00E5FF; box-shadow: 0 0 8px rgba(0, 229, 255, 0.3); }
+         .dual-bar-fill.target-color { background: #a855f7; box-shadow: 0 0 8px rgba(168, 85, 247, 0.3); }
+         .dual-counts { width: 100px; display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; }
+         .count-c { color: #00E5FF; }
+         .count-t { color: #a855f7; }
  
          /* CHARACTERS DUAL TAB */
          .characters-dual-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; }
